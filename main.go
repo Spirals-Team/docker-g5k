@@ -22,6 +22,8 @@ func main() {
 	switch os.Args[1] {
 	case "create-cluster":
 		cmd.CreateCluster()
+	case "remove-cluster":
+		cmd.RemoveCluster()
 	default:
 		usage()
 	}
