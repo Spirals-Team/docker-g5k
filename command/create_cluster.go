@@ -12,6 +12,7 @@ import (
 	"github.com/docker/machine/libmachine/auth"
 	"github.com/docker/machine/libmachine/host"
 	"github.com/docker/machine/libmachine/log"
+	"github.com/docker/machine/libmachine/swarm"
 
 	"github.com/Spirals-Team/docker-machine-driver-g5k/api"
 	"github.com/Spirals-Team/docker-machine-driver-g5k/driver"
@@ -73,7 +74,7 @@ func (c *Command) DeployNodes() error {
 }
 
 // createHostAuthOptions returns a configured AuthOptions for HostOptions struct
-func createHostAuthOptions(machineName string) *auth.Options {
+func (c *Command) createHostAuthOptions(machineName string) *auth.Options {
 	return &auth.Options{
 		CertDir:          mcndirs.GetMachineCertDir(),
 		CaCertPath:       filepath.Join(mcndirs.GetMachineCertDir(), "ca.pem"),
@@ -87,7 +88,26 @@ func createHostAuthOptions(machineName string) *auth.Options {
 	}
 }
 
-func (c *Command) provisionNode(nodeName string) error {
+// createHostSwarmOptions returns a configured SwarmOptions for HostOptions struct
+func (c *Command) createHostSwarmOptions(machineName string, isMaster bool) *swarm.Options {
+	return &swarm.Options{
+		IsSwarm: true,
+		Image:   "swarm:latest",
+		// Agent:          !isMaster, to exclude Swarm master from Swarm Pool
+		Agent:          true,
+		Master:         isMaster,
+		Discovery:      "token://" + c.SwarmDiscoveryToken,
+		Address:        machineName,
+		Host:           "tcp://0.0.0.0:3376",
+		Strategy:       "spread",
+		ArbitraryFlags: nil,
+		// Weave: ArbitraryJoinFlags: []string{"advertise=0.0.0.0:12375"},
+		ArbitraryJoinFlags: nil,
+		IsExperimental:     false,
+	}
+}
+
+func (c *Command) provisionNode(nodeName string, isSwarmMaster bool) error {
 	// create a new libmachine client
 	client := libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir())
 	defer client.Close()
@@ -124,7 +144,10 @@ func (c *Command) provisionNode(nodeName string) error {
 	}
 
 	// mandatory, or driver will use bad paths
-	h.HostOptions.AuthOptions = createHostAuthOptions(nodeName)
+	h.HostOptions.AuthOptions = c.createHostAuthOptions(nodeName)
+
+	// set swarm options
+	h.HostOptions.SwarmOptions = c.createHostSwarmOptions(nodeName, isSwarmMaster)
 
 	// provision the new machine
 	if err := client.Create(h); err != nil {
@@ -144,12 +167,19 @@ func (c *Command) ProvisionNodes() error {
 
 	// provision all deployed nodes
 	var wg sync.WaitGroup
-	for _, v := range deployment.Nodes {
+	for i, v := range deployment.Nodes {
 		wg.Add(1)
-		go func(nodeName string) {
+		go func(nodeID int, nodeName string) {
 			defer wg.Done()
-			c.provisionNode(nodeName)
-		}(v)
+
+			// first node will be the swarm master
+			if nodeID == 0 {
+				c.provisionNode(nodeName, true)
+			} else {
+				c.provisionNode(nodeName, false)
+			}
+
+		}(i, v)
 	}
 
 	// wait nodes provisionning to finish

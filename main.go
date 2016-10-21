@@ -9,7 +9,7 @@ import (
 
 func usage() {
 	fmt.Println("Usage:")
-	fmt.Println("	create-cluster <g5k-user> <g5k-password> <g5k-site> <g5k-walltime> <path to ssh private key> <nb nodes>")
+	fmt.Println("	create-cluster <g5k-user> <g5k-password> <g5k-site> <g5k-walltime> <path to ssh private key> <swarm discovery token> <nb nodes>")
 	os.Exit(1)
 }
 

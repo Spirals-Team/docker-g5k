@@ -22,6 +22,8 @@ type Command struct {
 	G5kImage              string
 	G5kResourceProperties string
 	G5kNbNodes            int
+
+	SwarmDiscoveryToken string
 }
 
 // ParseArguments will parse command line arguments an set data in common struct (later)
@@ -37,8 +39,10 @@ func (c *Command) ParseArguments(args []string) error {
 
 	c.G5kAPI = api.NewApi(c.G5kUsername, c.G5kPassword, c.G5kSite, c.G5kImage)
 
+	c.SwarmDiscoveryToken = args[5]
+
 	var err error
-	if c.G5kNbNodes, err = strconv.Atoi(args[5]); err != nil {
+	if c.G5kNbNodes, err = strconv.Atoi(args[6]); err != nil {
 		return err
 	}
 
