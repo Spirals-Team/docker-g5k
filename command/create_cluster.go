@@ -90,10 +90,9 @@ func (c *Command) createHostAuthOptions(machineName string) *auth.Options {
 // createHostSwarmOptions returns a configured SwarmOptions for HostOptions struct
 func (c *Command) createHostSwarmOptions(machineName string, isMaster bool) *swarm.Options {
 	return &swarm.Options{
-		IsSwarm: true,
-		Image:   "swarm:latest",
-		// Agent:          !isMaster, to exclude Swarm master from Swarm Pool
-		Agent:          true,
+		IsSwarm:        true,
+		Image:          "swarm:latest",
+		Agent:          !isMaster, // exclude Swarm master from Swarm Pool
 		Master:         isMaster,
 		Discovery:      "token://" + c.cli.String("swarm-discovery-token"),
 		Address:        machineName,
