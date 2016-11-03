@@ -1,48 +1,69 @@
 package command
 
 import (
-	"strconv"
+	"fmt"
 
 	"github.com/Spirals-Team/docker-machine-driver-g5k/api"
+	"github.com/codegangsta/cli"
 )
 
-// Command struct contain all common informations used between commands
+// Command struct contain common informations used between commands
 type Command struct {
-	G5kAPI *api.Api
+	cli *cli.Context
+	api *api.Api
 
-	G5kJobID        int
-	G5kDeploymentID string
-
-	G5kUsername           string
-	G5kPassword           string
-	G5kSite               string
-	G5kWalltime           string
-	G5kSSHPrivateKeyPath  string
-	G5kSSHPublicKeyPath   string
-	G5kImage              string
-	G5kResourceProperties string
-	G5kNbNodes            int
-
-	SwarmDiscoveryToken string
+	g5kJobID        int
+	g5kDeploymentID string
 }
 
-// ParseArguments will parse command line arguments an set data in common struct (later)
-func (c *Command) ParseArguments(args []string) error {
-	// TODO: really parse arguments from cli
-	c.G5kImage = "jessie-x64-min"
-	c.G5kUsername = args[0]
-	c.G5kPassword = args[1]
-	c.G5kSite = args[2]
-	c.G5kWalltime = args[3]
-	c.G5kSSHPrivateKeyPath = args[4]
-	c.G5kSSHPublicKeyPath = args[4] + ".pub"
+// NewCommandContext verify mandatory parameters and returns a new CommandContext
+func NewCommandContext(cmd *cli.Context) (*Command, error) {
+	// check username
+	g5kUsername := cmd.GlobalString("g5k-username")
+	if g5kUsername == "" {
+		return nil, fmt.Errorf("You must provide your Grid5000 account username")
+	}
 
-	c.G5kAPI = api.NewApi(c.G5kUsername, c.G5kPassword, c.G5kSite, c.G5kImage)
+	// check password
+	g5kPassword := cmd.GlobalString("g5k-password")
+	if g5kPassword == "" {
+		return nil, fmt.Errorf("You must provide your Grid5000 account password")
+	}
 
-	c.SwarmDiscoveryToken = args[5]
+	// check site
+	g5kSite := cmd.GlobalString("g5k-site")
+	if g5kSite == "" {
+		return nil, fmt.Errorf("You must provide a site to reserve the ressources on")
+	}
 
-	var err error
-	if c.G5kNbNodes, err = strconv.Atoi(args[6]); err != nil {
+	return &Command{
+		cli: cmd,
+		api: api.NewApi(g5kUsername, g5kPassword, g5kSite),
+	}, nil
+}
+
+// RunCreateClusterCommand create a new cluster using parameters given in cli
+func RunCreateClusterCommand(c *cli.Context) error {
+	cmd, err := NewCommandContext(c)
+	if err != nil {
+		return err
+	}
+
+	if err := cmd.CreateCluster(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RunRemoveClusterCommand remove an existing cluster using parameters given in cli
+func RunRemoveClusterCommand(c *cli.Context) error {
+	cmd, err := NewCommandContext(c)
+	if err != nil {
+		return err
+	}
+
+	if err := cmd.RemoveCluster(); err != nil {
 		return err
 	}
 
