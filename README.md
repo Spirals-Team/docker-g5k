@@ -1,2 +1,105 @@
 # docker-g5k
 Docker Grid5000 client (CLI and Go library)
+
+## Requirements
+* [Docker](https://www.docker.com/products/overview#/install_the_platform)
+* [Docker Machine](https://docs.docker.com/machine/install-machine)
+* [Docker Machine Driver for Grid5000](https://github.com/Spirals-Team/docker-machine-driver-g5k)
+* [Go tools](https://golang.org/doc/install)
+
+You need a Grid5000 account to use this tool. See [this page](https://www.grid5000.fr/mediawiki/index.php/Grid5000:Get_an_account) to create an account.
+
+## Installation
+
+## Installation from sources
+*This procedure was only tested on Ubuntu 16.04.*
+
+To use the Go tools, you need to set your [GOPATH](https://golang.org/doc/code.html#GOPATH) variable environment.
+
+To get the code and compile the binary, run:
+```bash
+go get -u github.com/Spirals-Team/docker-g5k
+```
+
+Then, either put the 'docker-g5k' binary in a directory filled in your PATH environment variable, or run:
+```bash
+export PATH=$PATH:$GOPATH/bin
+```
+
+## How to use
+
+### VPN
+You need to be connected to the Grid5000 VPN to create and access your Docker nodes.  
+Do not forget to configure your DNS or use OpenVPN DNS auto-configuration.  
+Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/mediawiki/index.php/VPN).
+
+### Driver-specific options
+
+#### Global options
+
+|            Option            |                       Description                       |     Default value     |  Required  |
+|------------------------------|---------------------------------------------------------|-----------------------|------------|
+| `--g5k-username`             | Your Grid5000 account username                          |                       | Yes        |
+| `--g5k-password`             | Your Grid5000 account password                          |                       | Yes        |
+| `--g5k-site`                 | Site to reserve the resources on                        |                       | Yes        |
+
+#### Cluster creation options
+
+|            Option            |                       Description                       |     Default value     |  Required  |
+|------------------------------|---------------------------------------------------------|-----------------------|------------|
+| `--swarm-discovery-token`    | Discovery token to use for joining a Swarm cluster      |                       | Yes        |
+| `--g5k-nb-nodes`             | Number of nodes to allocate                             | 3                     | No         |
+| `--g5k-walltime`             | Timelife of the machine                                 | "1:00:00"             | No         |
+| `--g5k-ssh-private-key`      | Path of your ssh private key                            | "~/.ssh/id_rsa"       | No         |
+| `--g5k-ssh-public-key`       | Path of your ssh public key                             | "< private-key >.pub" | No         |
+| `--g5k-image`                | Name of the image to deploy                             | "jessie-x64-min"      | No         |
+| `--g5k-resource-properties`  | Resource selection with OAR properties (SQL format)     |                       | No         |
+
+#### Cluster deletion options
+
+|            Option            |                       Description                       |     Default value     |  Required  |
+|------------------------------|---------------------------------------------------------|-----------------------|------------|
+| `--g5k-job-id`               | Only remove nodes related to the provided job ID        |                       | No         |
+
+### Examples
+
+#### Cluster creation
+
+An example of a 3 nodes Docker Swarm cluster creation:
+```bash
+docker-g5k --g5k-username user \
+--g5k-password ******** \
+--g5k-site lille \
+create-cluster \
+--g5k-ssh-private-key ~/.ssh/g5k-key
+```
+
+An example of a 16 nodes Docker Swarm cluster creation with resource properties (nodes in cluster `chimint` with more thant 8GB of RAM and at least 4 CPU cores):
+```bash
+docker-g5k --g5k-username user \
+--g5k-password ******** \
+--g5k-site lille \
+create-cluster \
+--g5k-ssh-private-key ~/.ssh/g5k-key \
+--g5k-nb-nodes 16 \
+--g5k-resource-properties "cluster = 'chimint' and memnode > 8192 and cpucore >= 4"
+```
+
+#### Cluster deletion
+
+An example of deleting all provisionned nodes:
+```bash
+docker-g5k --g5k-username user \
+--g5k-password ******** \
+--g5k-site lille \
+remove-cluster
+```
+
+An example of deleting only nodes related to a job ID:
+```bash
+docker-g5k --g5k-username user \
+--g5k-password ******** \
+--g5k-site lille \
+remove-cluster \
+--g5k-job-id 1234567
+```
