@@ -42,7 +42,7 @@ func (c *Command) AllocateNodes() error {
 	return nil
 }
 
-// DeployNodes deploy the nodes in a job
+// DeployNodes submit a deployment request
 func (c *Command) DeployNodes() error {
 	// reading ssh public key file
 	pubkey, err := ioutil.ReadFile(c.cli.String("g5k-ssh-public-key"))
@@ -89,18 +89,24 @@ func (c *Command) createHostAuthOptions(machineName string) *auth.Options {
 
 // createHostSwarmOptions returns a configured SwarmOptions for HostOptions struct
 func (c *Command) createHostSwarmOptions(machineName string, isMaster bool) *swarm.Options {
+	joinFlags := c.cli.StringSlice("swarm-join-opt")
+
+	// Advertise to the Weave Proxy port when a node join a Swarm cluster if Weave networking is enabled
+	if c.cli.Bool("weave-networking") {
+		joinFlags = append(joinFlags, fmt.Sprintf("advertise=%s:12375", machineName))
+	}
+
 	return &swarm.Options{
-		IsSwarm:        true,
-		Image:          "swarm:latest",
-		Agent:          !isMaster, // exclude Swarm master from Swarm Pool
-		Master:         isMaster,
-		Discovery:      "token://" + c.cli.String("swarm-discovery-token"),
-		Address:        machineName,
-		Host:           "tcp://0.0.0.0:3376",
-		Strategy:       "spread",
-		ArbitraryFlags: nil,
-		// Weave: ArbitraryJoinFlags: []string{"advertise=0.0.0.0:12375"},
-		ArbitraryJoinFlags: nil,
+		IsSwarm:            true,
+		Image:              c.cli.String("swarm-image"),
+		Agent:              !isMaster, // exclude Swarm master from Swarm Pool
+		Master:             isMaster,
+		Discovery:          c.cli.String("swarm-discovery"),
+		Address:            machineName,
+		Host:               "tcp://0.0.0.0:3376",
+		Strategy:           c.cli.String("swarm-strategy"),
+		ArbitraryFlags:     c.cli.StringSlice("swarm-opt"),
+		ArbitraryJoinFlags: joinFlags,
 		IsExperimental:     false,
 	}
 }
@@ -213,10 +219,22 @@ func (c *Command) checkCliParameters() error {
 		return fmt.Errorf("Your ssh public key file does not exist in : '%s'", sshPubKey)
 	}
 
-	// check Docker Swarm discovery token
-	swarmDiscoveryToken := c.cli.String("swarm-discovery-token")
-	if swarmDiscoveryToken == "" {
-		return fmt.Errorf("You must provide a Swarm discovery token")
+	// check Docker Swarm discovery
+	swarmDiscovery := c.cli.String("swarm-discovery")
+	if swarmDiscovery == "" {
+		return fmt.Errorf("You must provide a Swarm discovery method")
+	}
+
+	// check Docker Swarm image
+	swarmImage := c.cli.String("swarm-image")
+	if swarmImage == "" {
+		return fmt.Errorf("You must provide a Swarm image")
+	}
+
+	// check Docker Swarm strategy
+	swarmStrategy := c.cli.String("swarm-strategy")
+	if swarmStrategy == "" {
+		return fmt.Errorf("You must provide a Swarm strategy")
 	}
 
 	return nil

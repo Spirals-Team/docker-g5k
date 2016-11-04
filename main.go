@@ -75,9 +75,38 @@ var (
 				},
 
 				cli.StringFlag{
-					Name:  "swarm-discovery-token",
-					Usage: "Discovery token to use for joining a Swarm cluster",
+					Name:  "swarm-discovery",
+					Usage: "Discovery service to use with Swarm",
 					Value: "",
+				},
+
+				cli.StringFlag{
+					Name:  "swarm-image",
+					Usage: "Specify Docker image to use for Swarm",
+					Value: "swarm:latest",
+				},
+
+				cli.StringFlag{
+					Name:  "swarm-strategy",
+					Usage: "Define a default scheduling strategy for Swarm",
+					Value: "spread",
+				},
+
+				cli.StringSliceFlag{
+					Name:  "swarm-opt",
+					Usage: "Define arbitrary flags for Swarm master",
+					Value: nil,
+				},
+
+				cli.StringSliceFlag{
+					Name:  "swarm-join-opt",
+					Usage: "Define arbitrary flags for Swarm join",
+					Value: nil,
+				},
+
+				cli.BoolFlag{
+					Name:  "weave-networking",
+					Usage: "Use Weave for networking",
 				},
 			},
 		},
