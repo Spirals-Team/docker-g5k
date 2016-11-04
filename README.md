@@ -34,9 +34,9 @@ You need to be connected to the Grid5000 VPN to create and access your Docker no
 Do not forget to configure your DNS or use OpenVPN DNS auto-configuration.  
 Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/mediawiki/index.php/VPN).
 
-### Driver-specific options
+### Command line flags
 
-#### Global options
+#### Global flags
 
 |            Option            |                       Description                       |     Default value     |  Required  |
 |------------------------------|---------------------------------------------------------|-----------------------|------------|
@@ -44,7 +44,7 @@ Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/
 | `--g5k-password`             | Your Grid5000 account password                          |                       | Yes        |
 | `--g5k-site`                 | Site to reserve the resources on                        |                       | Yes        |
 
-#### Cluster creation options
+#### Cluster creation flags
 
 |            Option            |                       Description                       |     Default value     |  Required  |
 |------------------------------|---------------------------------------------------------|-----------------------|------------|
@@ -61,7 +61,7 @@ Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/
 | `--swarm-join-opt`           | Define arbitrary flags for Swarm join                   |                       | No         |
 | `--weave-networking`         | Use Weave for networking (INCOMPLETE)                   | False                 | No         |
 
-#### Cluster deletion options
+#### Cluster deletion flags
 
 |            Option            |                       Description                       |     Default value     |  Required  |
 |------------------------------|---------------------------------------------------------|-----------------------|------------|
