@@ -35,6 +35,14 @@ func (c *Command) RemoveCluster() error {
 				log.Errorf("Cannot remove node '%s' : %s", h.Name, err)
 			}
 
+			// filter the nodes to remove on their job ID
+			if jobID := c.cli.Int("g5k-job-id"); jobID != -1 {
+				// skip nodes with different job ID than provided
+				if driverConfig.G5kJobID != jobID {
+					continue
+				}
+			}
+
 			// check the job is already in the list of deleted jobs
 			if _, exist := jobs[driverConfig.G5kJobID]; !exist {
 				// send API call to kill job
