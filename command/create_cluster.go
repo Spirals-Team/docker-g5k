@@ -11,10 +11,13 @@ import (
 	"github.com/docker/machine/commands/mcndirs"
 	"github.com/docker/machine/libmachine"
 	"github.com/docker/machine/libmachine/auth"
+	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/swarm"
 
 	"github.com/Spirals-Team/docker-machine-driver-g5k/api"
 	"github.com/Spirals-Team/docker-machine-driver-g5k/driver"
+
+	"github.com/docker/swarm/discovery/token"
 )
 
 // AllocateNodes allocate a new job with multiple nodes
@@ -194,6 +197,21 @@ func (c *Command) ProvisionNodes() error {
 	return nil
 }
 
+// generateNewSwarmDiscoveryToken get a new Docker Swarm discovery token from Docker Hub
+func generateNewSwarmDiscoveryToken() (string, error) {
+	// init Discovery structure
+	discovery := token.Discovery{}
+	discovery.Initialize("token", 0, 0, nil)
+
+	// get a new discovery token from Docker Hub
+	swarmToken, err := discovery.CreateCluster()
+	if err != nil {
+		return "", err
+	}
+
+	return swarmToken, nil
+}
+
 // checkSshKeyFiles check if
 func (c *Command) checkCliParameters() error {
 	// check ssh private key
@@ -222,7 +240,15 @@ func (c *Command) checkCliParameters() error {
 	// check Docker Swarm discovery
 	swarmDiscovery := c.cli.String("swarm-discovery")
 	if swarmDiscovery == "" {
-		return fmt.Errorf("You must provide a Swarm discovery method")
+		swarmDiscoveryToken, err := generateNewSwarmDiscoveryToken()
+		if err != nil {
+			return err
+		}
+
+		// set discovery token in CLI context
+		c.cli.Set("swarm-discovery", fmt.Sprintf("token://%s", swarmDiscoveryToken))
+
+		log.Infof("New Swarm discovery token generated : '%s'", swarmDiscoveryToken)
 	}
 
 	// check Docker Swarm image
