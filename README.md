@@ -1,5 +1,6 @@
 # docker-g5k
-Docker Grid5000 client (CLI and Go library)
+A tool to create a Docker Swarm cluster for Docker Machine on Grid5000 testbed infrastructure.  
+It only support creating and deleting nodes in Docker Machine.   
 
 ## Requirements
 * [Docker](https://www.docker.com/products/overview#/install_the_platform)
@@ -52,7 +53,7 @@ Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/
 | `--swarm-strategy`           | Define a default scheduling strategy for Swarm          | "spread"              | No         |
 | `--swarm-opt`                | Define arbitrary flags for Swarm master                 |                       | No         |
 | `--swarm-join-opt`           | Define arbitrary flags for Swarm join                   |                       | No         |
-| `--weave-networking`         | Use Weave for networking                                | False                 | No         |
+| `--weave-networking`         | Use Weave for networking (INCOMPLETE)                   | False                 | No         |
 | `--g5k-nb-nodes`             | Number of nodes to allocate                             | 3                     | No         |
 | `--g5k-walltime`             | Timelife of the machine                                 | "1:00:00"             | No         |
 | `--g5k-ssh-private-key`      | Path of your ssh private key                            | "~/.ssh/id_rsa"       | No         |
@@ -110,3 +111,13 @@ docker-g5k --g5k-username user \
 remove-cluster \
 --g5k-job-id 1234567
 ```
+
+#### Use
+
+After creating a cluster, you should be able to use it with usual Docker Machine commands.  
+By example, to list all nodes in the cluster :
+```bash
+docker-machine ls
+```
+ 
+**If you remove a node with Docker Machine 'rm' command, the job will be deleted and ALL nodes related to this job will become unavailable**  
