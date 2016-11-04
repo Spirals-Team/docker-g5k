@@ -48,18 +48,18 @@ Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/
 
 |            Option            |                       Description                       |     Default value     |  Required  |
 |------------------------------|---------------------------------------------------------|-----------------------|------------|
-| `--swarm-discovery`          | Discovery service to use with Swarm                     |                       | Yes        |
-| `--swarm-image`              | Specify Docker image to use for Swarm                   | "swarm:latest"        | No         |
-| `--swarm-strategy`           | Define a default scheduling strategy for Swarm          | "spread"              | No         |
-| `--swarm-opt`                | Define arbitrary flags for Swarm master                 |                       | No         |
-| `--swarm-join-opt`           | Define arbitrary flags for Swarm join                   |                       | No         |
-| `--weave-networking`         | Use Weave for networking (INCOMPLETE)                   | False                 | No         |
 | `--g5k-nb-nodes`             | Number of nodes to allocate                             | 3                     | No         |
 | `--g5k-walltime`             | Timelife of the machine                                 | "1:00:00"             | No         |
 | `--g5k-ssh-private-key`      | Path of your ssh private key                            | "~/.ssh/id_rsa"       | No         |
 | `--g5k-ssh-public-key`       | Path of your ssh public key                             | "< private-key >.pub" | No         |
 | `--g5k-image`                | Name of the image to deploy                             | "jessie-x64-min"      | No         |
 | `--g5k-resource-properties`  | Resource selection with OAR properties (SQL format)     |                       | No         |
+| `--swarm-discovery`          | Discovery service to use with Swarm                     | Generate a new token  | No         |
+| `--swarm-image`              | Specify Docker image to use for Swarm                   | "swarm:latest"        | No         |
+| `--swarm-strategy`           | Define a default scheduling strategy for Swarm          | "spread"              | No         |
+| `--swarm-opt`                | Define arbitrary flags for Swarm master                 |                       | No         |
+| `--swarm-join-opt`           | Define arbitrary flags for Swarm join                   |                       | No         |
+| `--weave-networking`         | Use Weave for networking (INCOMPLETE)                   | False                 | No         |
 
 #### Cluster deletion options
 
@@ -77,6 +77,15 @@ docker-g5k --g5k-username user \
 --g5k-password ******** \
 --g5k-site lille \
 create-cluster \
+--g5k-ssh-private-key ~/.ssh/g5k-key
+```
+
+An example where 3 nodes join an existing Docker Swarm cluster using a discovery token:
+```bash
+docker-g5k --g5k-username user \
+--g5k-password ******** \
+--g5k-site lille \
+create-cluster \
 --swarm-discovery "token://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
 --g5k-ssh-private-key ~/.ssh/g5k-key
 ```
@@ -87,7 +96,6 @@ docker-g5k --g5k-username user \
 --g5k-password ******** \
 --g5k-site lille \
 create-cluster \
---swarm-discovery "token://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
 --g5k-ssh-private-key ~/.ssh/g5k-key \
 --g5k-nb-nodes 16 \
 --g5k-resource-properties "cluster = 'chimint' and memnode > 8192 and cpucore >= 4"
