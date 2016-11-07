@@ -14,10 +14,12 @@ import (
 	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/swarm"
 
+	"github.com/docker/swarm/discovery/token"
+
 	"github.com/Spirals-Team/docker-machine-driver-g5k/api"
 	"github.com/Spirals-Team/docker-machine-driver-g5k/driver"
 
-	"github.com/docker/swarm/discovery/token"
+	"github.com/Spirals-Team/docker-g5k/libdockerg5k/weave"
 )
 
 // AllocateNodes allocate a new job with multiple nodes
@@ -161,6 +163,29 @@ func (c *Command) provisionNode(nodeName string, isSwarmMaster bool) error {
 	// provision the new machine
 	if err := client.Create(h); err != nil {
 		return err
+	}
+
+	// install and run Weave Net / Discovery if Weave networking mode is enabled
+	if c.cli.Bool("weave-networking") {
+		// install Weave Net
+		if err := weave.InstallWeaveNet(h); err != nil {
+			return err
+		}
+
+		// run Weave Net
+		if err := weave.RunWeaveNet(h); err != nil {
+			return err
+		}
+
+		// install Weave Discovery
+		if err := weave.InstallWeaveDiscovery(h); err != nil {
+			return err
+		}
+
+		// run Weave Discovery
+		if err := weave.RunWeaveDiscovery(h, c.cli.String("swarm-discovery")); err != nil {
+			return err
+		}
 	}
 
 	return nil
