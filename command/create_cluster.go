@@ -14,11 +14,10 @@ import (
 	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/swarm"
 
-	"github.com/docker/swarm/discovery/token"
-
 	"github.com/Spirals-Team/docker-machine-driver-g5k/api"
 	"github.com/Spirals-Team/docker-machine-driver-g5k/driver"
 
+	g5kswarm "github.com/Spirals-Team/docker-g5k/libdockerg5k/swarm"
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/weave"
 )
 
@@ -222,21 +221,6 @@ func (c *Command) ProvisionNodes() error {
 	return nil
 }
 
-// generateNewSwarmDiscoveryToken get a new Docker Swarm discovery token from Docker Hub
-func generateNewSwarmDiscoveryToken() (string, error) {
-	// init Discovery structure
-	discovery := token.Discovery{}
-	discovery.Initialize("token", 0, 0, nil)
-
-	// get a new discovery token from Docker Hub
-	swarmToken, err := discovery.CreateCluster()
-	if err != nil {
-		return "", err
-	}
-
-	return swarmToken, nil
-}
-
 // checkSshKeyFiles check if
 func (c *Command) checkCliParameters() error {
 	// check ssh private key
@@ -265,7 +249,7 @@ func (c *Command) checkCliParameters() error {
 	// check Docker Swarm discovery
 	swarmDiscovery := c.cli.String("swarm-discovery")
 	if swarmDiscovery == "" {
-		swarmDiscoveryToken, err := generateNewSwarmDiscoveryToken()
+		swarmDiscoveryToken, err := g5kswarm.GetNewSwarmDiscoveryToken()
 		if err != nil {
 			return err
 		}
