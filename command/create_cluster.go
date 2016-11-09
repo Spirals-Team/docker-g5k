@@ -167,21 +167,25 @@ func (c *Command) provisionNode(nodeName string, isSwarmMaster bool) error {
 	// install and run Weave Net / Discovery if Weave networking mode is enabled
 	if c.cli.Bool("weave-networking") {
 		// install Weave Net
+		log.Info("Installing Weave Net...")
 		if err := weave.InstallWeaveNet(h); err != nil {
 			return err
 		}
 
 		// run Weave Net
+		log.Info("Running Weave Net...")
 		if err := weave.RunWeaveNet(h); err != nil {
 			return err
 		}
 
 		// install Weave Discovery
+		log.Info("Installing Weave Discovery...")
 		if err := weave.InstallWeaveDiscovery(h); err != nil {
 			return err
 		}
 
 		// run Weave Discovery
+		log.Info("Running Weave Discovery...")
 		if err := weave.RunWeaveDiscovery(h, c.cli.String("swarm-discovery")); err != nil {
 			return err
 		}
