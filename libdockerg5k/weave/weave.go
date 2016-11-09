@@ -57,7 +57,7 @@ func InstallWeaveDiscovery(h *host.Host) error {
 // RunWeaveDiscovery run Weave Discovery on a host using the given Swarm Discovery method
 func RunWeaveDiscovery(h *host.Host, swarmDiscovery string) error {
 	// run Weave Discovery (discovery join --advertise-router $SWARM_DISCOVERY)
-	if _, err := h.RunSSHCommand(strings.Join([]string{weaveDiscoveryPath, "join", "--advertise-router", swarmDiscovery}, " ")); err != nil {
+	if _, err := h.RunSSHCommand(strings.Join([]string{"IMAGE_VERSION=latest", weaveDiscoveryPath, "join", "--discovered-port=6783", "--advertise-router", swarmDiscovery}, " ")); err != nil {
 		return err
 	}
 
