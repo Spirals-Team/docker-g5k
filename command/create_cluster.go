@@ -166,21 +166,9 @@ func (c *Command) provisionNode(nodeName string, isSwarmMaster bool) error {
 
 	// install and run Weave Net / Discovery if Weave networking mode is enabled
 	if c.cli.Bool("weave-networking") {
-		// install Weave Net
-		log.Info("Installing Weave Net...")
-		if err := weave.InstallWeaveNet(h); err != nil {
-			return err
-		}
-
 		// run Weave Net
 		log.Info("Running Weave Net...")
 		if err := weave.RunWeaveNet(h); err != nil {
-			return err
-		}
-
-		// install Weave Discovery
-		log.Info("Installing Weave Discovery...")
-		if err := weave.InstallWeaveDiscovery(h); err != nil {
 			return err
 		}
 
@@ -288,6 +276,21 @@ func (c *Command) CreateCluster() error {
 	// check cli parameters
 	if err := c.checkCliParameters(); err != nil {
 		return err
+	}
+
+	// download Weave Tools if Weave networking mode is enabled
+	if c.cli.Bool("weave-networking") {
+		log.Info("Dowloading Weave tools...")
+
+		// Weave Net
+		if err := weave.InstallLocalWeaveNetScript(); err != nil {
+			return err
+		}
+
+		// Weave Discovery
+		if err := weave.InstallLocalWeaveDiscoveryScript(); err != nil {
+			return err
+		}
 	}
 
 	// submit new job
