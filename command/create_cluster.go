@@ -17,7 +17,8 @@ import (
 	"github.com/Spirals-Team/docker-machine-driver-g5k/api"
 	"github.com/Spirals-Team/docker-machine-driver-g5k/driver"
 
-	"github.com/docker/swarm/discovery/token"
+	g5kswarm "github.com/Spirals-Team/docker-g5k/libdockerg5k/swarm"
+	"github.com/Spirals-Team/docker-g5k/libdockerg5k/weave"
 )
 
 // AllocateNodes allocate a new job with multiple nodes
@@ -123,9 +124,9 @@ func (c *Command) provisionNode(nodeName string, isSwarmMaster bool) error {
 	driver := driver.NewDriver()
 
 	// set g5k driver parameters
-	driver.G5kUsername = c.cli.GlobalString("g5k-username")
-	driver.G5kPassword = c.cli.GlobalString("g5k-password")
-	driver.G5kSite = c.cli.GlobalString("g5k-site")
+	driver.G5kUsername = c.cli.String("g5k-username")
+	driver.G5kPassword = c.cli.String("g5k-password")
+	driver.G5kSite = c.cli.String("g5k-site")
 
 	driver.G5kImage = c.cli.String("g5k-image")
 	driver.G5kWalltime = c.cli.String("g5k-walltime")
@@ -163,6 +164,21 @@ func (c *Command) provisionNode(nodeName string, isSwarmMaster bool) error {
 		return err
 	}
 
+	// install and run Weave Net / Discovery if Weave networking mode is enabled
+	if c.cli.Bool("weave-networking") {
+		// run Weave Net
+		log.Info("Running Weave Net...")
+		if err := weave.RunWeaveNet(h); err != nil {
+			return err
+		}
+
+		// run Weave Discovery
+		log.Info("Running Weave Discovery...")
+		if err := weave.RunWeaveDiscovery(h, c.cli.String("swarm-discovery")); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -197,23 +213,26 @@ func (c *Command) ProvisionNodes() error {
 	return nil
 }
 
-// generateNewSwarmDiscoveryToken get a new Docker Swarm discovery token from Docker Hub
-func generateNewSwarmDiscoveryToken() (string, error) {
-	// init Discovery structure
-	discovery := token.Discovery{}
-	discovery.Initialize("token", 0, 0, nil)
-
-	// get a new discovery token from Docker Hub
-	swarmToken, err := discovery.CreateCluster()
-	if err != nil {
-		return "", err
+// checkCliParameters perform checks on CLI parameters
+func (c *Command) checkCliParameters() error {
+	// check username
+	g5kUsername := c.cli.String("g5k-username")
+	if g5kUsername == "" {
+		return fmt.Errorf("You must provide your Grid5000 account username")
 	}
 
-	return swarmToken, nil
-}
+	// check password
+	g5kPassword := c.cli.String("g5k-password")
+	if g5kPassword == "" {
+		return fmt.Errorf("You must provide your Grid5000 account password")
+	}
 
-// checkSshKeyFiles check if
-func (c *Command) checkCliParameters() error {
+	// check site
+	g5kSite := c.cli.String("g5k-site")
+	if g5kSite == "" {
+		return fmt.Errorf("You must provide a site to reserve the ressources on")
+	}
+
 	// check ssh private key
 	sshPrivKey := c.cli.String("g5k-ssh-private-key")
 	if sshPrivKey == "" {
@@ -240,7 +259,7 @@ func (c *Command) checkCliParameters() error {
 	// check Docker Swarm discovery
 	swarmDiscovery := c.cli.String("swarm-discovery")
 	if swarmDiscovery == "" {
-		swarmDiscoveryToken, err := generateNewSwarmDiscoveryToken()
+		swarmDiscoveryToken, err := g5kswarm.GetNewSwarmDiscoveryToken()
 		if err != nil {
 			return err
 		}
@@ -275,6 +294,24 @@ func (c *Command) CreateCluster() error {
 	// check cli parameters
 	if err := c.checkCliParameters(); err != nil {
 		return err
+	}
+
+	// create new Grid5000 API client
+	c.api = api.NewApi(c.cli.String("g5k-username"), c.cli.String("g5k-password"), c.cli.String("g5k-site"))
+
+	// download Weave Tools if Weave networking mode is enabled
+	if c.cli.Bool("weave-networking") {
+		log.Info("Dowloading Weave tools...")
+
+		// Weave Net
+		if err := weave.InstallLocalWeaveNetScript(); err != nil {
+			return err
+		}
+
+		// Weave Discovery
+		if err := weave.InstallLocalWeaveDiscoveryScript(); err != nil {
+			return err
+		}
 	}
 
 	// submit new job

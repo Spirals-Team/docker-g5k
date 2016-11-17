@@ -1,8 +1,6 @@
 package command
 
 import (
-	"fmt"
-
 	"github.com/Spirals-Team/docker-machine-driver-g5k/api"
 	"github.com/codegangsta/cli"
 )
@@ -18,27 +16,8 @@ type Command struct {
 
 // NewCommandContext verify mandatory parameters and returns a new CommandContext
 func NewCommandContext(cmd *cli.Context) (*Command, error) {
-	// check username
-	g5kUsername := cmd.GlobalString("g5k-username")
-	if g5kUsername == "" {
-		return nil, fmt.Errorf("You must provide your Grid5000 account username")
-	}
-
-	// check password
-	g5kPassword := cmd.GlobalString("g5k-password")
-	if g5kPassword == "" {
-		return nil, fmt.Errorf("You must provide your Grid5000 account password")
-	}
-
-	// check site
-	g5kSite := cmd.GlobalString("g5k-site")
-	if g5kSite == "" {
-		return nil, fmt.Errorf("You must provide a site to reserve the ressources on")
-	}
-
 	return &Command{
 		cli: cmd,
-		api: api.NewApi(g5kUsername, g5kPassword, g5kSite),
 	}, nil
 }
 

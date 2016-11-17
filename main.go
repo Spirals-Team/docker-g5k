@@ -11,25 +11,7 @@ import (
 
 var (
 	// AppFlags stores cli flags for common parameters
-	AppFlags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "g5k-username",
-			Usage: "Your Grid5000 account username",
-			Value: "",
-		},
-
-		cli.StringFlag{
-			Name:  "g5k-password",
-			Usage: "Your Grid5000 account password",
-			Value: "",
-		},
-
-		cli.StringFlag{
-			Name:  "g5k-site",
-			Usage: "Site to reserve the resources on",
-			Value: "",
-		},
-	}
+	AppFlags = []cli.Flag{}
 
 	// CliCommands stores cli commands and their flags
 	CliCommands = []cli.Command{
@@ -38,6 +20,24 @@ var (
 			Usage:  "Create a new Docker Swarm cluster on Grid5000",
 			Action: command.RunCreateClusterCommand,
 			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "g5k-username",
+					Usage: "Your Grid5000 account username",
+					Value: "",
+				},
+
+				cli.StringFlag{
+					Name:  "g5k-password",
+					Usage: "Your Grid5000 account password",
+					Value: "",
+				},
+
+				cli.StringFlag{
+					Name:  "g5k-site",
+					Usage: "Site to reserve the resources on",
+					Value: "",
+				},
+
 				cli.StringFlag{
 					Name:  "g5k-walltime",
 					Usage: "Machine's lifetime (HH:MM:SS)",
@@ -52,7 +52,7 @@ var (
 
 				cli.StringFlag{
 					Name:  "g5k-ssh-public-key",
-					Usage: "Path of your ssh public key",
+					Usage: "Path of your ssh public key (default: \"<g5k-ssh-private-key>.pub\")",
 					Value: "",
 				},
 
@@ -94,13 +94,13 @@ var (
 
 				cli.StringSliceFlag{
 					Name:  "swarm-opt",
-					Usage: "Define arbitrary flags for Swarm master",
+					Usage: "Define arbitrary flags for Swarm master (can be provided multiple times)",
 					Value: nil,
 				},
 
 				cli.StringSliceFlag{
 					Name:  "swarm-join-opt",
-					Usage: "Define arbitrary flags for Swarm join",
+					Usage: "Define arbitrary flags for Swarm join (can be provided multiple times)",
 					Value: nil,
 				},
 

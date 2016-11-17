@@ -46,7 +46,7 @@ func (c *Command) RemoveCluster() error {
 			// check the job is already in the list of deleted jobs
 			if _, exist := jobs[driverConfig.G5kJobID]; !exist {
 				// send API call to kill job
-				c.api.KillJob(driverConfig.G5kJobID)
+				driverConfig.KillJob(driverConfig.G5kJobID)
 
 				// add job ID to list of deleted jobs
 				jobs[driverConfig.G5kJobID] = true
