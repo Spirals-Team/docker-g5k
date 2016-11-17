@@ -124,9 +124,9 @@ func (c *Command) provisionNode(nodeName string, isSwarmMaster bool) error {
 	driver := driver.NewDriver()
 
 	// set g5k driver parameters
-	driver.G5kUsername = c.cli.GlobalString("g5k-username")
-	driver.G5kPassword = c.cli.GlobalString("g5k-password")
-	driver.G5kSite = c.cli.GlobalString("g5k-site")
+	driver.G5kUsername = c.cli.String("g5k-username")
+	driver.G5kPassword = c.cli.String("g5k-password")
+	driver.G5kSite = c.cli.String("g5k-site")
 
 	driver.G5kImage = c.cli.String("g5k-image")
 	driver.G5kWalltime = c.cli.String("g5k-walltime")
@@ -213,8 +213,26 @@ func (c *Command) ProvisionNodes() error {
 	return nil
 }
 
-// checkSshKeyFiles check if
+// checkCliParameters perform checks on CLI parameters
 func (c *Command) checkCliParameters() error {
+	// check username
+	g5kUsername := c.cli.String("g5k-username")
+	if g5kUsername == "" {
+		return fmt.Errorf("You must provide your Grid5000 account username")
+	}
+
+	// check password
+	g5kPassword := c.cli.String("g5k-password")
+	if g5kPassword == "" {
+		return fmt.Errorf("You must provide your Grid5000 account password")
+	}
+
+	// check site
+	g5kSite := c.cli.String("g5k-site")
+	if g5kSite == "" {
+		return fmt.Errorf("You must provide a site to reserve the ressources on")
+	}
+
 	// check ssh private key
 	sshPrivKey := c.cli.String("g5k-ssh-private-key")
 	if sshPrivKey == "" {
@@ -277,6 +295,9 @@ func (c *Command) CreateCluster() error {
 	if err := c.checkCliParameters(); err != nil {
 		return err
 	}
+
+	// create new Grid5000 API client
+	c.api = api.NewApi(c.cli.String("g5k-username"), c.cli.String("g5k-password"), c.cli.String("g5k-site"))
 
 	// download Weave Tools if Weave networking mode is enabled
 	if c.cli.Bool("weave-networking") {
