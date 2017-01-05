@@ -54,6 +54,7 @@ Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/
 | `--swarm-strategy`           | Define a default scheduling strategy for Swarm          | "spread"              | No         |
 | `--swarm-opt`                | Define arbitrary flags for Swarm master                 |                       | No         |
 | `--swarm-join-opt`           | Define arbitrary flags for Swarm join                   |                       | No         |
+| `--swarm-master-join`        | Make Swarm master join the Swarm pool                   | False                 | No         |
 | `--weave-networking`         | Use Weave for networking                                | False                 | No         |
 
 #### Cluster deletion flags
