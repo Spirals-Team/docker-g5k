@@ -105,6 +105,11 @@ var (
 				},
 
 				cli.BoolFlag{
+					Name:  "swarm-master-join",
+					Usage: "Make Swarm master join the Swarm pool",
+				},
+
+				cli.BoolFlag{
 					Name:  "weave-networking",
 					Usage: "Use Weave for networking",
 				},

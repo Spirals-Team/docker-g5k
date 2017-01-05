@@ -93,10 +93,16 @@ func (c *Command) createHostAuthOptions(machineName string) *auth.Options {
 
 // createHostSwarmOptions returns a configured SwarmOptions for HostOptions struct
 func (c *Command) createHostSwarmOptions(machineName string, isMaster bool) *swarm.Options {
+	runAgent := true
+	// By default, exclude master node from Swarm pool, but can be overrided by swarm-master-join flag
+	if isMaster && !c.cli.Bool("swarm-master-join") {
+		runAgent = false
+	}
+
 	return &swarm.Options{
 		IsSwarm:            true,
 		Image:              c.cli.String("swarm-image"),
-		Agent:              !isMaster, // exclude Swarm master from Swarm Pool
+		Agent:              runAgent,
 		Master:             isMaster,
 		Discovery:          c.cli.String("swarm-discovery"),
 		Address:            machineName,
