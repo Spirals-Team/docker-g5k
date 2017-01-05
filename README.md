@@ -130,6 +130,4 @@ Then run a container using Weave networking:
 docker run --net=weave -h foo.weave.local --name foo $(~/.docker/machine/weave-net dns-args) -td your-image:version
 ```
 Your containers can now communicate with each other using theirs short ('foo') or long ('foo.weave.local') name.  
-The name used NEED to be the one given in parameter '-h'. The name of the container (parameter '--name') is not used by Weave.  
-
-If you need to use the Weave Net script, it is located in '~/.docker/machine/weave-net'.
+The name used NEED to be the one given in parameter '-h'. The name of the container (parameter '--name') is not used by Weave.
