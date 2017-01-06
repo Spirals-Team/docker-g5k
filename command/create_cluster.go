@@ -93,24 +93,23 @@ func (c *Command) createHostAuthOptions(machineName string) *auth.Options {
 
 // createHostSwarmOptions returns a configured SwarmOptions for HostOptions struct
 func (c *Command) createHostSwarmOptions(machineName string, isMaster bool) *swarm.Options {
-	joinFlags := c.cli.StringSlice("swarm-join-opt")
-
-	// Advertise to the Weave Proxy port when a node join a Swarm cluster if Weave networking is enabled
-	if c.cli.Bool("weave-networking") {
-		joinFlags = append(joinFlags, fmt.Sprintf("advertise=%s:12375", machineName))
+	runAgent := true
+	// By default, exclude master node from Swarm pool, but can be overrided by swarm-master-join flag
+	if isMaster && !c.cli.Bool("swarm-master-join") {
+		runAgent = false
 	}
 
 	return &swarm.Options{
 		IsSwarm:            true,
 		Image:              c.cli.String("swarm-image"),
-		Agent:              !isMaster, // exclude Swarm master from Swarm Pool
+		Agent:              runAgent,
 		Master:             isMaster,
 		Discovery:          c.cli.String("swarm-discovery"),
 		Address:            machineName,
 		Host:               "tcp://0.0.0.0:3376",
 		Strategy:           c.cli.String("swarm-strategy"),
 		ArbitraryFlags:     c.cli.StringSlice("swarm-opt"),
-		ArbitraryJoinFlags: joinFlags,
+		ArbitraryJoinFlags: c.cli.StringSlice("swarm-join-opt"),
 		IsExperimental:     false,
 	}
 }
@@ -298,21 +297,6 @@ func (c *Command) CreateCluster() error {
 
 	// create new Grid5000 API client
 	c.api = api.NewApi(c.cli.String("g5k-username"), c.cli.String("g5k-password"), c.cli.String("g5k-site"))
-
-	// download Weave Tools if Weave networking mode is enabled
-	if c.cli.Bool("weave-networking") {
-		log.Info("Dowloading Weave tools...")
-
-		// Weave Net
-		if err := weave.InstallLocalWeaveNetScript(); err != nil {
-			return err
-		}
-
-		// Weave Discovery
-		if err := weave.InstallLocalWeaveDiscoveryScript(); err != nil {
-			return err
-		}
-	}
 
 	// submit new job
 	if err := c.AllocateNodes(); err != nil {
