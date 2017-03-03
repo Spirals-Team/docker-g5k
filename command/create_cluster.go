@@ -3,7 +3,6 @@ package command
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -14,67 +13,11 @@ import (
 	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/swarm"
 
-	"github.com/Spirals-Team/docker-machine-driver-g5k/api"
 	"github.com/Spirals-Team/docker-machine-driver-g5k/driver"
 
 	g5kswarm "github.com/Spirals-Team/docker-g5k/libdockerg5k/swarm"
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/weave"
 )
-
-// AllocateNodes allocate a new job with multiple nodes
-func (c *Command) AllocateNodes() error {
-	// convert walltime to seconds
-	seconds, err := api.ConvertDuration(c.cli.String("g5k-walltime"))
-	if err != nil {
-		return err
-	}
-
-	// create a new job request
-	jobReq := api.JobRequest{
-		Resources:  fmt.Sprintf("nodes=%v,walltime=%s", c.cli.Int("g5k-nb-nodes"), c.cli.String("g5k-walltime")),
-		Command:    fmt.Sprintf("sleep %v", seconds),
-		Properties: c.cli.String("g5k-resource-properties"),
-		Types:      []string{"deploy"},
-	}
-
-	// submit job request
-	c.g5kJobID, err = c.api.SubmitJob(jobReq)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// DeployNodes submit a deployment request
-func (c *Command) DeployNodes() error {
-	// reading ssh public key file
-	pubkey, err := ioutil.ReadFile(c.cli.String("g5k-ssh-public-key"))
-	if err != nil {
-		return err
-	}
-
-	// get job informations
-	job, err := c.api.GetJob(c.g5kJobID)
-	if err != nil {
-		return err
-	}
-
-	// creating a new deployment request
-	deploymentReq := api.DeploymentRequest{
-		Nodes:       job.Nodes,
-		Environment: c.cli.String("g5k-image"),
-		Key:         string(pubkey),
-	}
-
-	// deploy environment
-	c.g5kDeploymentID, err = c.api.SubmitDeployment(deploymentReq)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
 
 // createHostAuthOptions returns a configured AuthOptions for HostOptions struct
 func (c *Command) createHostAuthOptions(machineName string) *auth.Options {
@@ -295,24 +238,25 @@ func (c *Command) CreateCluster() error {
 		return err
 	}
 
-	// create new Grid5000 API client
-	c.api = api.NewApi(c.cli.String("g5k-username"), c.cli.String("g5k-password"), c.cli.String("g5k-site"))
+	// TODO: Multi-sites reservation/deployment
 
-	// submit new job
-	if err := c.AllocateNodes(); err != nil {
+	// reserve nodes via the Grid5000 API
+	g5kJobID, err := c.g5kAPI.ReserveNodes(c.cli.String("g5k-site"), c.cli.Int("g5k-nb-nodes"), c.cli.String("g5k-resource-properties"), c.cli.String("g5k-walltime"))
+	if err != nil {
 		return err
 	}
 
-	// wait until job is running
-	c.api.WaitUntilJobIsReady(c.g5kJobID)
+	// wait until job is ready
+	c.g5kAPI.WaitUntilJobIsReady(c.cli.String("g5k-site"), g5kJobID)
 
 	// submit new deployment
-	if err := c.DeployNodes(); err != nil {
+	g5kDeploymentID, err := c.g5kAPI.DeployNodes(c.cli.String("g5k-site"), c.cli.String("g5k-ssh-public-key"), g5kJobID, c.cli.String("g5k-image"))
+	if err != nil {
 		return err
 	}
 
 	// wait until deployment is finished
-	c.api.WaitUntilDeploymentIsFinished(c.g5kDeploymentID)
+	c.g5kAPI.WaitUntilDeploymentIsFinished(c.cli.String("g5k-site"), g5kDeploymentID)
 
 	// provision nodes
 	if err := c.ProvisionNodes(); err != nil {

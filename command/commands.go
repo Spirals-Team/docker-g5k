@@ -1,14 +1,14 @@
 package command
 
 import (
-	"github.com/Spirals-Team/docker-machine-driver-g5k/api"
+	"github.com/Spirals-Team/docker-g5k/libdockerg5k/g5k"
 	"github.com/codegangsta/cli"
 )
 
 // Command struct contain common informations used between commands
 type Command struct {
-	cli *cli.Context
-	api *api.Api
+	cli    *cli.Context
+	g5kAPI *g5k.G5K
 
 	g5kJobID        int
 	g5kDeploymentID string
