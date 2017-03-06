@@ -26,21 +26,15 @@ func (g *G5K) ReserveNodes(site string, nbNodes int, resourceProperties string, 
 	siteAPI := g.getSiteAPI(site)
 
 	// submit job request
-	g5kJobID, err := siteAPI.SubmitJob(jobReq)
+	jobID, err := siteAPI.SubmitJob(jobReq)
 	if err != nil {
 		return -1, err
 	}
 
-	return g5kJobID, nil
-}
-
-// WaitUntilJobIsReady wait until job reach 'ready' state
-func (g *G5K) WaitUntilJobIsReady(site string, jobID int) error {
-	siteAPI := g.getSiteAPI(site)
-
+	// wait until job reach 'ready' state
 	if err := siteAPI.WaitUntilJobIsReady(jobID); err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	return jobID, nil
 }

@@ -6,12 +6,12 @@ import (
 	"github.com/Spirals-Team/docker-machine-driver-g5k/api"
 )
 
-// DeployNodes submit a deployment request and returns the Deployment ID
-func (g *G5K) DeployNodes(site string, sshPublicKeyPath string, jobID int, image string) (string, error) {
+// DeployNodes submit a deployment request and returns the deployed nodes hostname
+func (g *G5K) DeployNodes(site string, sshPublicKeyPath string, jobID int, image string) ([]string, error) {
 	// reading ssh public key file
 	pubkey, err := ioutil.ReadFile(sshPublicKeyPath)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// get required site API client
@@ -20,10 +20,10 @@ func (g *G5K) DeployNodes(site string, sshPublicKeyPath string, jobID int, image
 	// get job informations
 	job, err := siteAPI.GetJob(jobID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	// creating a new deployment request
+	// create a new deployment request
 	deploymentReq := api.DeploymentRequest{
 		Nodes:       job.Nodes,
 		Environment: image,
@@ -31,21 +31,21 @@ func (g *G5K) DeployNodes(site string, sshPublicKeyPath string, jobID int, image
 	}
 
 	// deploy environment
-	g5kDeploymentID, err := siteAPI.SubmitDeployment(deploymentReq)
+	deploymentID, err := siteAPI.SubmitDeployment(deploymentReq)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return g5kDeploymentID, nil
-}
-
-// WaitUntilDeploymentIsFinished wait until deployment finish
-func (g *G5K) WaitUntilDeploymentIsFinished(site string, deploymentID string) error {
-	siteAPI := g.getSiteAPI(site)
-
+	// wait until deployment finish
 	if err := siteAPI.WaitUntilDeploymentIsFinished(deploymentID); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	// get deployment informations
+	deployment, err := siteAPI.GetDeployment(deploymentID)
+	if err != nil {
+		return nil, err
+	}
+
+	return deployment.Nodes, nil
 }

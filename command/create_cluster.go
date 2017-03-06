@@ -125,16 +125,10 @@ func (c *Command) provisionNode(nodeName string, isSwarmMaster bool) error {
 }
 
 // ProvisionNodes provision the nodes
-func (c *Command) ProvisionNodes() error {
-	// get deployment informations
-	deployment, err := c.api.GetDeployment(c.g5kDeploymentID)
-	if err != nil {
-		return err
-	}
-
+func (c *Command) ProvisionNodes(nodes []string) error {
 	// provision all deployed nodes
 	var wg sync.WaitGroup
-	for i, v := range deployment.Nodes {
+	for i, v := range nodes {
 		wg.Add(1)
 		go func(nodeID int, nodeName string) {
 			defer wg.Done()
@@ -241,25 +235,19 @@ func (c *Command) CreateCluster() error {
 	// TODO: Multi-sites reservation/deployment
 
 	// reserve nodes via the Grid5000 API
-	g5kJobID, err := c.g5kAPI.ReserveNodes(c.cli.String("g5k-site"), c.cli.Int("g5k-nb-nodes"), c.cli.String("g5k-resource-properties"), c.cli.String("g5k-walltime"))
+	jobID, err := c.g5kAPI.ReserveNodes(c.cli.String("g5k-site"), c.cli.Int("g5k-nb-nodes"), c.cli.String("g5k-resource-properties"), c.cli.String("g5k-walltime"))
 	if err != nil {
 		return err
 	}
-
-	// wait until job is ready
-	c.g5kAPI.WaitUntilJobIsReady(c.cli.String("g5k-site"), g5kJobID)
 
 	// submit new deployment
-	g5kDeploymentID, err := c.g5kAPI.DeployNodes(c.cli.String("g5k-site"), c.cli.String("g5k-ssh-public-key"), g5kJobID, c.cli.String("g5k-image"))
+	deployedNodes, err := c.g5kAPI.DeployNodes(c.cli.String("g5k-site"), c.cli.String("g5k-ssh-public-key"), jobID, c.cli.String("g5k-image"))
 	if err != nil {
 		return err
 	}
 
-	// wait until deployment is finished
-	c.g5kAPI.WaitUntilDeploymentIsFinished(c.cli.String("g5k-site"), g5kDeploymentID)
-
 	// provision nodes
-	if err := c.ProvisionNodes(); err != nil {
+	if err := c.ProvisionNodes(deployedNodes); err != nil {
 		return err
 	}
 
