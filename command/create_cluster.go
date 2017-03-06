@@ -15,6 +15,7 @@ import (
 
 	"github.com/Spirals-Team/docker-machine-driver-g5k/driver"
 
+	"github.com/Spirals-Team/docker-g5k/libdockerg5k/g5k"
 	g5kswarm "github.com/Spirals-Team/docker-g5k/libdockerg5k/swarm"
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/weave"
 )
@@ -57,7 +58,7 @@ func (c *Command) createHostSwarmOptions(machineName string, isMaster bool) *swa
 	}
 }
 
-func (c *Command) provisionNode(nodeName string, isSwarmMaster bool) error {
+func (c *Command) provisionNode(nodeName string, jobID int, isSwarmMaster bool) error {
 	// create a new libmachine client
 	client := libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir())
 	defer client.Close()
@@ -76,7 +77,7 @@ func (c *Command) provisionNode(nodeName string, isSwarmMaster bool) error {
 	driver.G5kSSHPublicKeyPath = c.cli.String("g5k-ssh-public-key")
 
 	driver.G5kHostToProvision = nodeName
-	driver.G5kJobID = c.g5kJobID
+	driver.G5kJobID = jobID
 
 	// set base driver parameters
 	driver.BaseDriver.MachineName = nodeName
@@ -125,7 +126,7 @@ func (c *Command) provisionNode(nodeName string, isSwarmMaster bool) error {
 }
 
 // ProvisionNodes provision the nodes
-func (c *Command) ProvisionNodes(nodes []string) error {
+func (c *Command) ProvisionNodes(nodes []string, jobID int) error {
 	// provision all deployed nodes
 	var wg sync.WaitGroup
 	for i, v := range nodes {
@@ -135,9 +136,9 @@ func (c *Command) ProvisionNodes(nodes []string) error {
 
 			// first node will be the swarm master
 			if nodeID == 0 {
-				c.provisionNode(nodeName, true)
+				c.provisionNode(nodeName, jobID, true)
 			} else {
-				c.provisionNode(nodeName, false)
+				c.provisionNode(nodeName, jobID, false)
 			}
 
 		}(i, v)
@@ -232,22 +233,23 @@ func (c *Command) CreateCluster() error {
 		return err
 	}
 
-	// TODO: Multi-sites reservation/deployment
+	// Create Grid5000 API client
+	c.g5kAPI = g5k.Init(c.cli.String("g5k-username"), c.cli.String("g5k-password"))
 
-	// reserve nodes via the Grid5000 API
+	// reserve nodes
 	jobID, err := c.g5kAPI.ReserveNodes(c.cli.String("g5k-site"), c.cli.Int("g5k-nb-nodes"), c.cli.String("g5k-resource-properties"), c.cli.String("g5k-walltime"))
 	if err != nil {
 		return err
 	}
 
-	// submit new deployment
+	// deploy the nodes
 	deployedNodes, err := c.g5kAPI.DeployNodes(c.cli.String("g5k-site"), c.cli.String("g5k-ssh-public-key"), jobID, c.cli.String("g5k-image"))
 	if err != nil {
 		return err
 	}
 
 	// provision nodes
-	if err := c.ProvisionNodes(deployedNodes); err != nil {
+	if err := c.ProvisionNodes(deployedNodes, jobID); err != nil {
 		return err
 	}
 
