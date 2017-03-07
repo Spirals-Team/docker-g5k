@@ -36,7 +36,7 @@ func (c *Command) createHostAuthOptions(machineName string) *auth.Options {
 }
 
 // createHostSwarmOptions returns a configured SwarmOptions for HostOptions struct
-func (c *Command) createHostSwarmOptions(machineName string, isMaster bool) *swarm.Options {
+func (c *Command) createHostSwarmOptions(nodeName string, isMaster bool) *swarm.Options {
 	runAgent := true
 	// By default, exclude master node from Swarm pool, but can be overrided by swarm-master-join flag
 	if isMaster && !c.cli.Bool("swarm-master-join") {
@@ -49,7 +49,7 @@ func (c *Command) createHostSwarmOptions(machineName string, isMaster bool) *swa
 		Agent:              runAgent,
 		Master:             isMaster,
 		Discovery:          c.cli.String("swarm-discovery"),
-		Address:            machineName,
+		Address:            nodeName,
 		Host:               "tcp://0.0.0.0:3376",
 		Strategy:           c.cli.String("swarm-strategy"),
 		ArbitraryFlags:     c.cli.StringSlice("swarm-opt"),
@@ -58,7 +58,7 @@ func (c *Command) createHostSwarmOptions(machineName string, isMaster bool) *swa
 	}
 }
 
-func (c *Command) provisionNode(nodeName string, jobID int, isSwarmMaster bool) error {
+func (c *Command) provisionNode(nodeName string, machineName string, jobID int, isSwarmMaster bool) error {
 	// create a new libmachine client
 	client := libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir())
 	defer client.Close()
@@ -80,7 +80,7 @@ func (c *Command) provisionNode(nodeName string, jobID int, isSwarmMaster bool) 
 	driver.G5kJobID = jobID
 
 	// set base driver parameters
-	driver.BaseDriver.MachineName = nodeName
+	driver.BaseDriver.MachineName = machineName
 	driver.BaseDriver.StorePath = mcndirs.GetBaseDir()
 	driver.BaseDriver.SSHKeyPath = driver.GetSSHKeyPath()
 
@@ -97,7 +97,7 @@ func (c *Command) provisionNode(nodeName string, jobID int, isSwarmMaster bool) 
 	}
 
 	// mandatory, or driver will use bad paths
-	h.HostOptions.AuthOptions = c.createHostAuthOptions(nodeName)
+	h.HostOptions.AuthOptions = c.createHostAuthOptions(machineName)
 
 	// set swarm options
 	h.HostOptions.SwarmOptions = c.createHostSwarmOptions(nodeName, isSwarmMaster)
@@ -126,7 +126,7 @@ func (c *Command) provisionNode(nodeName string, jobID int, isSwarmMaster bool) 
 }
 
 // ProvisionNodes provision the nodes
-func (c *Command) ProvisionNodes(nodes []string, jobID int) error {
+func (c *Command) ProvisionNodes(site string, nodes []string, jobID int) error {
 	// provision all deployed nodes
 	var wg sync.WaitGroup
 	for i, v := range nodes {
@@ -134,11 +134,14 @@ func (c *Command) ProvisionNodes(nodes []string, jobID int) error {
 		go func(nodeID int, nodeName string) {
 			defer wg.Done()
 
+			// compute Machine name
+			machineName := fmt.Sprintf("%s-%d", site, nodeID)
+
 			// first node will be the swarm master
 			if nodeID == 0 {
-				c.provisionNode(nodeName, jobID, true)
+				c.provisionNode(nodeName, machineName, jobID, true)
 			} else {
-				c.provisionNode(nodeName, jobID, false)
+				c.provisionNode(nodeName, machineName, jobID, false)
 			}
 
 		}(i, v)
@@ -224,7 +227,7 @@ func (c *Command) checkCliParameters() error {
 
 // CreateCluster create nodes in docker-machine
 func (c *Command) CreateCluster() error {
-	// create a new libmachine client
+	// create libmachine client
 	client := libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir())
 	defer client.Close()
 
@@ -233,7 +236,7 @@ func (c *Command) CreateCluster() error {
 		return err
 	}
 
-	// Create Grid5000 API client
+	// create Grid5000 API client
 	c.g5kAPI = g5k.Init(c.cli.String("g5k-username"), c.cli.String("g5k-password"))
 
 	// reserve nodes
@@ -242,14 +245,14 @@ func (c *Command) CreateCluster() error {
 		return err
 	}
 
-	// deploy the nodes
+	// deploy nodes
 	deployedNodes, err := c.g5kAPI.DeployNodes(c.cli.String("g5k-site"), c.cli.String("g5k-ssh-public-key"), jobID, c.cli.String("g5k-image"))
 	if err != nil {
 		return err
 	}
 
 	// provision nodes
-	if err := c.ProvisionNodes(deployedNodes, jobID); err != nil {
+	if err := c.ProvisionNodes(c.cli.String("g5k-site"), deployedNodes, jobID); err != nil {
 		return err
 	}
 
