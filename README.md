@@ -42,8 +42,7 @@ Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/
 |------------------------------|---------------------------------------------------------|-----------------------|------------|
 | `--g5k-username`             | Your Grid5000 account username                          |                       | Yes        |
 | `--g5k-password`             | Your Grid5000 account password                          |                       | Yes        |
-| `--g5k-site`                 | Site to reserve the resources on                        |                       | Yes        |
-| `--g5k-nb-nodes`             | Number of nodes to allocate                             | 3                     | No         |
+| `--g5k-reserve-nodes`        | Reserve nodes on a site (ex: lille:24)                  |                       | Yes        |
 | `--g5k-walltime`             | Timelife of the machine                                 | "1:00:00"             | No         |
 | `--g5k-ssh-private-key`      | Path of your ssh private key                            | "~/.ssh/id_rsa"       | No         |
 | `--g5k-ssh-public-key`       | Path of your ssh public key                             | "< private-key >.pub" | No         |
@@ -70,18 +69,18 @@ Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/
 An example of a 3 nodes Docker Swarm cluster creation:
 ```bash
 docker-g5k create-cluster \
---g5k-username user \
---g5k-password ******** \
---g5k-site lille \
+--g5k-username "user" \
+--g5k-password "********" \
+--g5k-reserve-nodes "lille:3"
 --g5k-ssh-private-key ~/.ssh/g5k-key
 ```
 
 An example where 3 nodes join an existing Docker Swarm cluster using a discovery token:
 ```bash
 docker-g5k create-cluster \
---g5k-username user \
---g5k-password ******** \
---g5k-site lille \
+--g5k-username "user" \
+--g5k-password "********" \
+--g5k-reserve-nodes "lille:3"
 --swarm-discovery "token://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
 --g5k-ssh-private-key ~/.ssh/g5k-key
 ```
@@ -89,11 +88,10 @@ docker-g5k create-cluster \
 An example of a 16 nodes Docker Swarm cluster creation with resource properties (nodes in cluster `chimint` with more thant 8GB of RAM and at least 4 CPU cores):
 ```bash
 docker-g5k create-cluster \
---g5k-username user \
---g5k-password ******** \
---g5k-site lille \
+--g5k-username "user" \
+--g5k-password "********" \
 --g5k-ssh-private-key ~/.ssh/g5k-key \
---g5k-nb-nodes 16 \
+--g5k-reserve-nodes "lille:16"
 --g5k-resource-properties "cluster = 'chimint' and memnode > 8192 and cpucore >= 4"
 ```
 
@@ -128,7 +126,7 @@ eval $(docker-machine env --swarm swarm-master-node-name)
 
 Then run a container using Weave networking:
 ```bash
-docker run --net=weave -h foo.weave.local --name foo $(~/.docker/machine/weave-net dns-args) -td your-image:version
+docker run --net=weave -h foo.weave.local --name foo --dns=172.17.0.1 --dns-search=weave.local. -td your-image:version
 ```
 Your containers can now communicate with each other using theirs short ('foo') or long ('foo.weave.local') name.  
 The name used NEED to be the one given in parameter '-h'. The name of the container (parameter '--name') is not used by Weave.
