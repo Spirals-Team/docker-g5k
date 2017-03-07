@@ -15,6 +15,10 @@ import (
 
 	"github.com/Spirals-Team/docker-machine-driver-g5k/driver"
 
+	"strings"
+
+	"strconv"
+
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/g5k"
 	g5kswarm "github.com/Spirals-Team/docker-g5k/libdockerg5k/swarm"
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/weave"
@@ -58,7 +62,7 @@ func (c *Command) createHostSwarmOptions(nodeName string, isMaster bool) *swarm.
 	}
 }
 
-func (c *Command) provisionNode(nodeName string, machineName string, jobID int, isSwarmMaster bool) error {
+func (c *Command) provisionNode(site string, nodeName string, machineName string, jobID int, isSwarmMaster bool) error {
 	// create a new libmachine client
 	client := libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir())
 	defer client.Close()
@@ -69,7 +73,7 @@ func (c *Command) provisionNode(nodeName string, machineName string, jobID int, 
 	// set g5k driver parameters
 	driver.G5kUsername = c.cli.String("g5k-username")
 	driver.G5kPassword = c.cli.String("g5k-password")
-	driver.G5kSite = c.cli.String("g5k-site")
+	driver.G5kSite = site
 
 	driver.G5kImage = c.cli.String("g5k-image")
 	driver.G5kWalltime = c.cli.String("g5k-walltime")
@@ -139,9 +143,9 @@ func (c *Command) ProvisionNodes(site string, nodes []string, jobID int) error {
 
 			// first node will be the swarm master
 			if nodeID == 0 {
-				c.provisionNode(nodeName, machineName, jobID, true)
+				c.provisionNode(site, nodeName, machineName, jobID, true)
 			} else {
-				c.provisionNode(nodeName, machineName, jobID, false)
+				c.provisionNode(site, nodeName, machineName, jobID, false)
 			}
 
 		}(i, v)
@@ -165,12 +169,6 @@ func (c *Command) checkCliParameters() error {
 	g5kPassword := c.cli.String("g5k-password")
 	if g5kPassword == "" {
 		return fmt.Errorf("You must provide your Grid5000 account password")
-	}
-
-	// check site
-	g5kSite := c.cli.String("g5k-site")
-	if g5kSite == "" {
-		return fmt.Errorf("You must provide a site to reserve the ressources on")
 	}
 
 	// check ssh private key
@@ -239,21 +237,34 @@ func (c *Command) CreateCluster() error {
 	// create Grid5000 API client
 	c.g5kAPI = g5k.Init(c.cli.String("g5k-username"), c.cli.String("g5k-password"))
 
-	// reserve nodes
-	jobID, err := c.g5kAPI.ReserveNodes(c.cli.String("g5k-site"), c.cli.Int("g5k-nb-nodes"), c.cli.String("g5k-resource-properties"), c.cli.String("g5k-walltime"))
-	if err != nil {
-		return err
-	}
+	// process nodes reservations
+	for _, r := range c.cli.StringSlice("g5k-reserve-nodes") {
+		// extract site name and number of nodes to reserve
+		v := strings.Split(r, ":")
+		site := v[0]
+		nbNodes, err := strconv.Atoi(v[1])
+		if err != nil {
+			return err
+		}
 
-	// deploy nodes
-	deployedNodes, err := c.g5kAPI.DeployNodes(c.cli.String("g5k-site"), c.cli.String("g5k-ssh-public-key"), jobID, c.cli.String("g5k-image"))
-	if err != nil {
-		return err
-	}
+		log.Infof("Reserving %d nodes on '%s' site...", nbNodes, site)
 
-	// provision nodes
-	if err := c.ProvisionNodes(c.cli.String("g5k-site"), deployedNodes, jobID); err != nil {
-		return err
+		// reserve nodes
+		jobID, err := c.g5kAPI.ReserveNodes(site, nbNodes, c.cli.String("g5k-resource-properties"), c.cli.String("g5k-walltime"))
+		if err != nil {
+			return err
+		}
+
+		// deploy nodes
+		deployedNodes, err := c.g5kAPI.DeployNodes(site, c.cli.String("g5k-ssh-public-key"), jobID, c.cli.String("g5k-image"))
+		if err != nil {
+			return err
+		}
+
+		// provision nodes
+		if err := c.ProvisionNodes(site, deployedNodes, jobID); err != nil {
+			return err
+		}
 	}
 
 	return nil

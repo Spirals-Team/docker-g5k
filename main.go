@@ -33,12 +33,6 @@ var (
 				},
 
 				cli.StringFlag{
-					Name:  "g5k-site",
-					Usage: "Site to reserve the resources on",
-					Value: "",
-				},
-
-				cli.StringFlag{
 					Name:  "g5k-walltime",
 					Usage: "Machine's lifetime (HH:MM:SS)",
 					Value: "1:00:00",
@@ -66,12 +60,6 @@ var (
 					Name:  "g5k-resource-properties",
 					Usage: "Resource selection with OAR properties (SQL format)",
 					Value: "",
-				},
-
-				cli.IntFlag{
-					Name:  "g5k-nb-nodes",
-					Usage: "Number of nodes to allocate",
-					Value: 3,
 				},
 
 				cli.StringFlag{
@@ -112,6 +100,11 @@ var (
 				cli.BoolFlag{
 					Name:  "weave-networking",
 					Usage: "Use Weave for networking",
+				},
+
+				cli.StringSliceFlag{
+					Name:  "g5k-reserve-nodes",
+					Usage: "Reserve nodes on a site (ex: lille:24)",
 				},
 			},
 		},
