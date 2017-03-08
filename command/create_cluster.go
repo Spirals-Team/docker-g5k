@@ -171,6 +171,11 @@ func (c *Command) checkCliParameters() error {
 		return fmt.Errorf("You must provide your Grid5000 account password")
 	}
 
+	// check nodes reservation
+	if len(c.cli.StringSlice("g5k-reserve-nodes")) < 1 {
+		return fmt.Errorf("You must provide a site and the number of nodes to reserve on it")
+	}
+
 	// check ssh private key
 	sshPrivKey := c.cli.String("g5k-ssh-private-key")
 	if sshPrivKey == "" {
