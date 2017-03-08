@@ -6,11 +6,22 @@ It only support creating and deleting nodes in Docker Machine.
 * [Docker](https://www.docker.com/products/overview#/install_the_platform)
 * [Docker Machine](https://docs.docker.com/machine/install-machine)
 * [Docker Machine Driver for Grid5000](https://github.com/Spirals-Team/docker-machine-driver-g5k)
-* [Go tools](https://golang.org/doc/install)
+* [Go tools (Only for installation from sources)](https://golang.org/doc/install)
 
 You need a Grid5000 account to use this tool. See [this page](https://www.grid5000.fr/mediawiki/index.php/Grid5000:Get_an_account) to create an account.
 
 ## Installation
+
+## Installation from GitHub releases
+Binary releases are available for Linux, MacOS and Windows using x86/x86_64 CPU architectures from the [releases page](https://github.com/Spirals-Team/docker-g5k/releases).  
+You can use the following commands to install or upgrade the driver:
+```bash
+# download the binary for your OS and CPU architecture
+sudo curl -L -o /usr/local/bin/docker-g5k "<link to release>"
+
+# grant execution rigths to the driver for everyone :
+sudo chmod 755 /usr/local/bin/docker-g5k
+```
 
 ## Installation from sources
 *This procedure was only tested on Ubuntu 16.04.*
