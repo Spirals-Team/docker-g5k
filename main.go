@@ -62,6 +62,11 @@ var (
 					Value: "",
 				},
 
+				cli.BoolFlag{
+					Name:  "swarm-enable",
+					Usage: "Enable Swarm (standalone) on the cluster",
+				},
+
 				cli.StringFlag{
 					Name:  "swarm-discovery",
 					Usage: "Discovery service to use with Swarm",
@@ -99,7 +104,7 @@ var (
 
 				cli.BoolFlag{
 					Name:  "weave-networking",
-					Usage: "Use Weave for networking",
+					Usage: "Use Weave for networking (Only if Swarm is enabled)",
 				},
 
 				cli.StringSliceFlag{

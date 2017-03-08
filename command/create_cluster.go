@@ -103,16 +103,18 @@ func (c *Command) provisionNode(site string, nodeName string, machineName string
 	// mandatory, or driver will use bad paths
 	h.HostOptions.AuthOptions = c.createHostAuthOptions(machineName)
 
-	// set swarm options
-	h.HostOptions.SwarmOptions = c.createHostSwarmOptions(nodeName, isSwarmMaster)
+	// set swarm options if Swarm (standalone) is enabled
+	if c.cli.Bool("swarm-enable") {
+		h.HostOptions.SwarmOptions = c.createHostSwarmOptions(nodeName, isSwarmMaster)
+	}
 
 	// provision the new machine
 	if err := client.Create(h); err != nil {
 		return err
 	}
 
-	// install and run Weave Net / Discovery if Weave networking mode is enabled
-	if c.cli.Bool("weave-networking") {
+	// install and run Weave Net / Discovery if Weave networking mode and Swarm are enabled
+	if c.cli.Bool("weave-networking") && c.cli.Bool("swarm-enable") {
 		// run Weave Net
 		log.Info("Running Weave Net...")
 		if err := weave.RunWeaveNet(h); err != nil {
