@@ -57,13 +57,14 @@ Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/
 | `--g5k-ssh-public-key`       | Path of your ssh public key                             | "< private-key >.pub" | No         |
 | `--g5k-image`                | Name of the image to deploy                             | "jessie-x64-min"      | No         |
 | `--g5k-resource-properties`  | Resource selection with OAR properties (SQL format)     |                       | No         |
+| `--swarm-enable`             | Enable Swarm (standalone) on the cluster                | False                 | No         |
 | `--swarm-discovery`          | Discovery service to use with Swarm                     | Generate a new token  | No         |
 | `--swarm-image`              | Specify Docker image to use for Swarm                   | "swarm:latest"        | No         |
 | `--swarm-strategy`           | Define a default scheduling strategy for Swarm          | "spread"              | No         |
 | `--swarm-opt`                | Define arbitrary flags for Swarm master                 |                       | No         |
 | `--swarm-join-opt`           | Define arbitrary flags for Swarm join                   |                       | No         |
 | `--swarm-master-join`        | Make Swarm master join the Swarm pool                   | False                 | No         |
-| `--weave-networking`         | Use Weave for networking                                | False                 | No         |
+| `--weave-networking`         | Use Weave for networking (Only if Swarm is enabled)     | False                 | No         |
 
 #### Cluster deletion flags
 
@@ -75,13 +76,23 @@ Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/
 
 #### Cluster creation
 
+An example of a 6 nodes Docker reservation. There is only Docker installed, and Swarm is not configured.
+```bash
+docker-g5k create-cluster \
+--g5k-username "user" \
+--g5k-password "********" \
+--g5k-reserve-nodes "lille:6" \
+--g5k-ssh-private-key ~/.ssh/g5k-key
+```
+
 An example of a 3 nodes Docker Swarm cluster creation:
 ```bash
 docker-g5k create-cluster \
 --g5k-username "user" \
 --g5k-password "********" \
---g5k-reserve-nodes "lille:3"
---g5k-ssh-private-key ~/.ssh/g5k-key
+--g5k-reserve-nodes "lille:3" \
+--g5k-ssh-private-key ~/.ssh/g5k-key \
+--swarm-enable
 ```
 
 An example where 3 nodes join an existing Docker Swarm cluster using a discovery token:
@@ -89,9 +100,10 @@ An example where 3 nodes join an existing Docker Swarm cluster using a discovery
 docker-g5k create-cluster \
 --g5k-username "user" \
 --g5k-password "********" \
---g5k-reserve-nodes "lille:3"
+--g5k-reserve-nodes "lille:3" \
 --swarm-discovery "token://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
---g5k-ssh-private-key ~/.ssh/g5k-key
+--g5k-ssh-private-key ~/.ssh/g5k-key \
+--swarm-enable
 ```
 
 An example of a 16 nodes Docker Swarm cluster creation with resource properties (nodes in cluster `chimint` with more thant 8GB of RAM and at least 4 CPU cores):
@@ -99,8 +111,9 @@ An example of a 16 nodes Docker Swarm cluster creation with resource properties 
 docker-g5k create-cluster \
 --g5k-username "user" \
 --g5k-password "********" \
+--g5k-reserve-nodes "lille:16" \
 --g5k-ssh-private-key ~/.ssh/g5k-key \
---g5k-reserve-nodes "lille:16"
+--swarm-enable \
 --g5k-resource-properties "cluster = 'chimint' and memnode > 8192 and cpucore >= 4"
 ```
 
