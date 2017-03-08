@@ -1,6 +1,5 @@
 # docker-g5k
-A tool to create a Docker Swarm cluster for Docker Machine on Grid5000 testbed infrastructure.  
-It only support creating and deleting nodes in Docker Machine.   
+A tool to create a Docker Swarm cluster for Docker Machine on the Grid5000 testbed infrastructure.  
 
 ## Requirements
 * [Docker](https://www.docker.com/products/overview#/install_the_platform)
@@ -13,21 +12,20 @@ You need a Grid5000 account to use this tool. See [this page](https://www.grid50
 ## Installation
 
 ## Installation from GitHub releases
-Binary releases are available for Linux, MacOS and Windows using x86/x86_64 CPU architectures from the [releases page](https://github.com/Spirals-Team/docker-g5k/releases).  
-You can use the following commands to install or upgrade the driver:
+Binary releases for Linux, MacOS and Windows using x86/x86_64 CPU architectures are available in the [releases page](https://github.com/Spirals-Team/docker-g5k/releases).  
+You can use the following commands to install or upgrade the tool:
 ```bash
-# download the binary for your OS and CPU architecture
+# download the binary for your OS and CPU architecture :
 sudo curl -L -o /usr/local/bin/docker-g5k "<link to release>"
 
-# grant execution rigths to the driver for everyone :
+# grant execution rigths for everyone :
 sudo chmod 755 /usr/local/bin/docker-g5k
 ```
 
 ## Installation from sources
 *This procedure was only tested on Ubuntu 16.04.*
 
-To use the Go tools, you need to set your [GOPATH](https://golang.org/doc/code.html#GOPATH) variable environment.
-
+To use the Go tools, you need to set your [GOPATH](https://golang.org/doc/code.html#GOPATH) variable environment.  
 To get the code and compile the binary, run:
 ```bash
 go get -u github.com/Spirals-Team/docker-g5k
