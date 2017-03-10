@@ -32,6 +32,11 @@ var (
 					Value: "",
 				},
 
+				cli.StringSliceFlag{
+					Name:  "g5k-reserve-nodes",
+					Usage: "Reserve nodes on a site (ex: lille:24)",
+				},
+
 				cli.StringFlag{
 					Name:  "g5k-walltime",
 					Usage: "Machine's lifetime (HH:MM:SS)",
@@ -63,53 +68,53 @@ var (
 				},
 
 				cli.BoolFlag{
-					Name:  "swarm-enable",
-					Usage: "Enable Swarm (standalone) on the cluster",
+					Name:  "swarm-mode-enable",
+					Usage: "Create a Swarm mode cluster",
+				},
+
+				cli.BoolFlag{
+					Name:  "swarm-standalone-enable",
+					Usage: "Create a Swarm standalone cluster",
 				},
 
 				cli.StringFlag{
-					Name:  "swarm-discovery",
+					Name:  "swarm-standalone-discovery",
 					Usage: "Discovery service to use with Swarm",
 					Value: "",
 				},
 
 				cli.StringFlag{
-					Name:  "swarm-image",
+					Name:  "swarm-standalone-image",
 					Usage: "Specify Docker image to use for Swarm",
 					Value: "swarm:latest",
 				},
 
 				cli.StringFlag{
-					Name:  "swarm-strategy",
+					Name:  "swarm-standalone-strategy",
 					Usage: "Define a default scheduling strategy for Swarm",
 					Value: "spread",
 				},
 
 				cli.StringSliceFlag{
-					Name:  "swarm-opt",
+					Name:  "swarm-standalone-opt",
 					Usage: "Define arbitrary flags for Swarm master (can be provided multiple times)",
 					Value: nil,
 				},
 
 				cli.StringSliceFlag{
-					Name:  "swarm-join-opt",
+					Name:  "swarm-standalone-join-opt",
 					Usage: "Define arbitrary flags for Swarm join (can be provided multiple times)",
 					Value: nil,
 				},
 
 				cli.BoolFlag{
-					Name:  "swarm-master-join",
+					Name:  "swarm-standalone-master-join",
 					Usage: "Make Swarm master join the Swarm pool",
 				},
 
 				cli.BoolFlag{
 					Name:  "weave-networking",
-					Usage: "Use Weave for networking (Only if Swarm is enabled)",
-				},
-
-				cli.StringSliceFlag{
-					Name:  "g5k-reserve-nodes",
-					Usage: "Reserve nodes on a site (ex: lille:24)",
+					Usage: "Use Weave for networking (Only if Swarm standalone is enabled)",
 				},
 			},
 		},

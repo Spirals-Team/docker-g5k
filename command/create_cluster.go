@@ -42,31 +42,27 @@ func (c *Command) createHostAuthOptions(machineName string) *auth.Options {
 // createHostSwarmOptions returns a configured SwarmOptions for HostOptions struct
 func (c *Command) createHostSwarmOptions(nodeName string, isMaster bool) *swarm.Options {
 	runAgent := true
-	// By default, exclude master node from Swarm pool, but can be overrided by swarm-master-join flag
-	if isMaster && !c.cli.Bool("swarm-master-join") {
+	// By default, exclude master node from Swarm pool, but can be overrided by swarm-standalone-master-join flag
+	if isMaster && !c.cli.Bool("swarm-standalone-master-join") {
 		runAgent = false
 	}
 
 	return &swarm.Options{
 		IsSwarm:            true,
-		Image:              c.cli.String("swarm-image"),
+		Image:              c.cli.String("swarm-standalone-image"),
 		Agent:              runAgent,
 		Master:             isMaster,
-		Discovery:          c.cli.String("swarm-discovery"),
+		Discovery:          c.cli.String("swarm-standalone-discovery"),
 		Address:            nodeName,
 		Host:               "tcp://0.0.0.0:3376",
-		Strategy:           c.cli.String("swarm-strategy"),
-		ArbitraryFlags:     c.cli.StringSlice("swarm-opt"),
-		ArbitraryJoinFlags: c.cli.StringSlice("swarm-join-opt"),
+		Strategy:           c.cli.String("swarm-standalone-strategy"),
+		ArbitraryFlags:     c.cli.StringSlice("swarm-standalone-opt"),
+		ArbitraryJoinFlags: c.cli.StringSlice("swarm-standalone-join-opt"),
 		IsExperimental:     false,
 	}
 }
 
-func (c *Command) provisionNode(site string, nodeName string, machineName string, jobID int, isSwarmMaster bool) error {
-	// create a new libmachine client
-	client := libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir())
-	defer client.Close()
-
+func (c *Command) provisionNode(libMachineClient *libmachine.Client, site string, nodeName string, machineName string, jobID int, isSwarmMaster bool) error {
 	// create driver instance for libmachine
 	driver := driver.NewDriver()
 
@@ -95,7 +91,7 @@ func (c *Command) provisionNode(site string, nodeName string, machineName string
 	}
 
 	// create a new host config
-	h, err := client.NewHost("g5k", data)
+	h, err := libMachineClient.NewHost("g5k", data)
 	if err != nil {
 		return err
 	}
@@ -103,18 +99,18 @@ func (c *Command) provisionNode(site string, nodeName string, machineName string
 	// mandatory, or driver will use bad paths
 	h.HostOptions.AuthOptions = c.createHostAuthOptions(machineName)
 
-	// set swarm options if Swarm (standalone) is enabled
-	if c.cli.Bool("swarm-enable") {
+	// set swarm options if Swarm standalone is enabled
+	if c.cli.Bool("swarm-standalone-enable") {
 		h.HostOptions.SwarmOptions = c.createHostSwarmOptions(nodeName, isSwarmMaster)
 	}
 
 	// provision the new machine
-	if err := client.Create(h); err != nil {
+	if err := libMachineClient.Create(h); err != nil {
 		return err
 	}
 
 	// install and run Weave Net / Discovery if Weave networking mode and Swarm are enabled
-	if c.cli.Bool("weave-networking") && c.cli.Bool("swarm-enable") {
+	if c.cli.Bool("weave-networking") {
 		// run Weave Net
 		log.Info("Running Weave Net...")
 		if err := weave.RunWeaveNet(h); err != nil {
@@ -123,7 +119,7 @@ func (c *Command) provisionNode(site string, nodeName string, machineName string
 
 		// run Weave Discovery
 		log.Info("Running Weave Discovery...")
-		if err := weave.RunWeaveDiscovery(h, c.cli.String("swarm-discovery")); err != nil {
+		if err := weave.RunWeaveDiscovery(h, c.cli.String("swarm-standalone-discovery")); err != nil {
 			return err
 		}
 	}
@@ -132,7 +128,7 @@ func (c *Command) provisionNode(site string, nodeName string, machineName string
 }
 
 // ProvisionNodes provision the nodes
-func (c *Command) ProvisionNodes(site string, nodes []string, jobID int) error {
+func (c *Command) ProvisionNodes(libMachineClient *libmachine.Client, site string, nodes []string, jobID int) error {
 	// provision all deployed nodes
 	var wg sync.WaitGroup
 	for i, v := range nodes {
@@ -145,9 +141,9 @@ func (c *Command) ProvisionNodes(site string, nodes []string, jobID int) error {
 
 			// first node will be the swarm master
 			if nodeID == 0 {
-				c.provisionNode(site, nodeName, machineName, jobID, true)
+				c.provisionNode(libMachineClient, site, nodeName, machineName, jobID, true)
 			} else {
-				c.provisionNode(site, nodeName, machineName, jobID, false)
+				c.provisionNode(libMachineClient, site, nodeName, machineName, jobID, false)
 			}
 
 		}(i, v)
@@ -202,7 +198,7 @@ func (c *Command) checkCliParameters() error {
 	}
 
 	// check Docker Swarm discovery
-	swarmDiscovery := c.cli.String("swarm-discovery")
+	swarmDiscovery := c.cli.String("swarm-standalone-discovery")
 	if swarmDiscovery == "" {
 		swarmDiscoveryToken, err := g5kswarm.GetNewSwarmDiscoveryToken()
 		if err != nil {
@@ -210,21 +206,26 @@ func (c *Command) checkCliParameters() error {
 		}
 
 		// set discovery token in CLI context
-		c.cli.Set("swarm-discovery", fmt.Sprintf("token://%s", swarmDiscoveryToken))
+		c.cli.Set("swarm-standalone-discovery", fmt.Sprintf("token://%s", swarmDiscoveryToken))
 
 		log.Infof("New Swarm discovery token generated : '%s'", swarmDiscoveryToken)
 	}
 
 	// check Docker Swarm image
-	swarmImage := c.cli.String("swarm-image")
+	swarmImage := c.cli.String("swarm-standalone-image")
 	if swarmImage == "" {
 		return fmt.Errorf("You must provide a Swarm image")
 	}
 
 	// check Docker Swarm strategy
-	swarmStrategy := c.cli.String("swarm-strategy")
+	swarmStrategy := c.cli.String("swarm-standalone-strategy")
 	if swarmStrategy == "" {
 		return fmt.Errorf("You must provide a Swarm strategy")
+	}
+
+	// block enabling Swarm mode and Swarm standalone at the same time
+	if c.cli.Bool("swarm-standalone-enable") && c.cli.Bool("swarm-mode-enable") {
+		return fmt.Errorf("You can't enable both swarm modes at the same time")
 	}
 
 	return nil
@@ -269,7 +270,7 @@ func (c *Command) CreateCluster() error {
 		}
 
 		// provision nodes
-		if err := c.ProvisionNodes(site, deployedNodes, jobID); err != nil {
+		if err := c.ProvisionNodes(client, site, deployedNodes, jobID); err != nil {
 			return err
 		}
 	}

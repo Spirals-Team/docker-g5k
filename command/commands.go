@@ -9,9 +9,6 @@ import (
 type Command struct {
 	cli    *cli.Context
 	g5kAPI *g5k.G5K
-
-	g5kJobID        int
-	g5kDeploymentID string
 }
 
 // NewCommandContext verify mandatory parameters and returns a new CommandContext
