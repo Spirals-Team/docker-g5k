@@ -15,7 +15,7 @@ type SwarmModeGlobalConfig struct {
 
 // IsSwarmModeClusterInitialized returns true if Swarm mode cluster is initialized (Manager/Worker tokens set), and false otherwise
 func (gc *SwarmModeGlobalConfig) IsSwarmModeClusterInitialized() bool {
-	return (gc.ManagerToken != "") || (gc.WorkerToken != "")
+	return (gc.ManagerToken != "") && (gc.WorkerToken != "")
 }
 
 // InitSwarmModeCluster initialize a new Swarm mode cluster on the given host and returns the Manager/Worker join tokens

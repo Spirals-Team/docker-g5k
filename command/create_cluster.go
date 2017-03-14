@@ -200,7 +200,7 @@ func (c *Command) checkCliParameters() error {
 	// check Docker Swarm discovery
 	swarmDiscovery := c.cli.String("swarm-standalone-discovery")
 	if swarmDiscovery == "" {
-		swarmDiscoveryToken, err := g5kswarm.GetNewSwarmDiscoveryToken()
+		swarmDiscoveryToken, err := g5kswarm.GetNewSwarmStandaloneDiscoveryToken()
 		if err != nil {
 			return err
 		}
