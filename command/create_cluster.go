@@ -231,6 +231,31 @@ func (c *Command) checkCliParameters() error {
 	return nil
 }
 
+func (c *Command) parseReserveNodesFlag() (map[string]int, error) {
+	reservations := make(map[string]int)
+
+	for _, r := range c.cli.StringSlice("g5k-reserve-nodes") {
+		// extract site name and number of nodes to reserve
+		v := strings.Split(r, ":")
+
+		// we only need 2 parameters : site and number of nodes
+		if len(v) != 2 {
+			return nil, fmt.Errorf("Syntax error in nodes reservation parameter: '%s'", r)
+		}
+
+		// convert nodes number to int
+		nb, err := strconv.Atoi(v[1])
+		if err != nil {
+			return nil, err
+		}
+
+		// store nodes to reserve for site
+		reservations[v[0]] = nb
+	}
+
+	return reservations, nil
+}
+
 // CreateCluster create nodes in docker-machine
 func (c *Command) CreateCluster() error {
 	// create libmachine client
@@ -245,20 +270,18 @@ func (c *Command) CreateCluster() error {
 	// create Grid5000 API client
 	c.g5kAPI = g5k.Init(c.cli.String("g5k-username"), c.cli.String("g5k-password"))
 
-	// process nodes reservations
-	for _, r := range c.cli.StringSlice("g5k-reserve-nodes") {
-		// extract site name and number of nodes to reserve
-		v := strings.Split(r, ":")
-		site := v[0]
-		nbNodes, err := strconv.Atoi(v[1])
-		if err != nil {
-			return err
-		}
+	// parse nodes reservations from CLI flag
+	reservations, err := c.parseReserveNodesFlag()
+	if err != nil {
+		return err
+	}
 
-		log.Infof("Reserving %d nodes on '%s' site...", nbNodes, site)
+	// process nodes reservations by sites
+	for site, nb := range reservations {
+		log.Infof("Reserving %d nodes on '%s' site...", nb, site)
 
 		// reserve nodes
-		jobID, err := c.g5kAPI.ReserveNodes(site, nbNodes, c.cli.String("g5k-resource-properties"), c.cli.String("g5k-walltime"))
+		jobID, err := c.g5kAPI.ReserveNodes(site, nb, c.cli.String("g5k-resource-properties"), c.cli.String("g5k-walltime"))
 		if err != nil {
 			return err
 		}
