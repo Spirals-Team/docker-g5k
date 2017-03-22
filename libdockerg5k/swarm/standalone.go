@@ -1,6 +1,8 @@
 package swarm
 
 import (
+	"fmt"
+
 	"github.com/docker/machine/libmachine/swarm"
 	"github.com/docker/swarm/discovery/token"
 )
@@ -15,8 +17,8 @@ type SwarmStandaloneGlobalConfig struct {
 	IsExperimental bool
 }
 
-// CreateSwarmStandaloneNodeConfig returns a configured SwarmOptions for HostOptions struct
-func (gc *SwarmStandaloneGlobalConfig) CreateSwarmStandaloneNodeConfig(nodeName string, isMaster bool, isWorker bool) *swarm.Options {
+// CreateNodeConfig returns a configured SwarmOptions for HostOptions struct
+func (gc *SwarmStandaloneGlobalConfig) CreateNodeConfig(nodeName string, isMaster bool, isWorker bool) *swarm.Options {
 	return &swarm.Options{
 		IsSwarm:            true,
 		Image:              gc.Image,
@@ -32,8 +34,8 @@ func (gc *SwarmStandaloneGlobalConfig) CreateSwarmStandaloneNodeConfig(nodeName 
 	}
 }
 
-// GetNewSwarmStandaloneDiscoveryToken get a new Docker Swarm discovery token from Docker Hub
-func GetNewSwarmStandaloneDiscoveryToken() (string, error) {
+// GenerateDiscoveryToken generate a new Docker Swarm discovery token from Docker Hub
+func (gc *SwarmStandaloneGlobalConfig) GenerateDiscoveryToken() error {
 	// init Discovery structure
 	discovery := token.Discovery{}
 	discovery.Initialize("token", 0, 0, nil)
@@ -41,8 +43,9 @@ func GetNewSwarmStandaloneDiscoveryToken() (string, error) {
 	// get a new discovery token from Docker Hub
 	swarmToken, err := discovery.CreateCluster()
 	if err != nil {
-		return "", err
+		return fmt.Errorf("Error when generating new discovery token: %s", err.Error())
 	}
 
-	return swarmToken, nil
+	gc.Discovery = fmt.Sprintf("token://%s", swarmToken)
+	return nil
 }
