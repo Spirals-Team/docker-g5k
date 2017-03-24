@@ -9,12 +9,11 @@ import (
 
 // SwarmStandaloneGlobalConfig contain Swarm standalone global configuration
 type SwarmStandaloneGlobalConfig struct {
-	Image          string
-	Discovery      string
-	Strategy       string
-	MasterFlags    []string
-	JoinFlags      []string
-	IsExperimental bool
+	Image       string
+	Discovery   string
+	Strategy    string
+	MasterFlags []string
+	JoinFlags   []string
 }
 
 // CreateNodeConfig returns a configured SwarmOptions for HostOptions struct
@@ -30,7 +29,7 @@ func (gc *SwarmStandaloneGlobalConfig) CreateNodeConfig(nodeName string, isMaste
 		Strategy:           gc.Strategy,
 		ArbitraryFlags:     gc.MasterFlags,
 		ArbitraryJoinFlags: gc.JoinFlags,
-		IsExperimental:     gc.IsExperimental,
+		IsExperimental:     false,
 	}
 }
 
