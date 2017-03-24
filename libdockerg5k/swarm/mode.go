@@ -2,6 +2,9 @@ package swarm
 
 import (
 	"fmt"
+	"net"
+
+	"strings"
 
 	"github.com/docker/machine/libmachine/host"
 )
@@ -32,16 +35,29 @@ func (gc *SwarmModeGlobalConfig) InitSwarmModeCluster(h *host.Host) error {
 	}
 
 	// get Manager join token
-	gc.ManagerToken, err = h.RunSSHCommand("docker swarm join-token -q manager")
+	managerToken, err := h.RunSSHCommand("docker swarm join-token -q manager")
 	if err != nil {
 		return err
 	}
 
 	// get Worker join token
-	gc.WorkerToken, err = h.RunSSHCommand("docker swarm join-token -q worker")
+	workerToken, err := h.RunSSHCommand("docker swarm join-token -q worker")
 	if err != nil {
 		return err
 	}
+
+	// get IP address of the host
+	ip, err := h.Driver.GetIP()
+	if err != nil {
+		return err
+	}
+
+	// remove spaces/new lines at the begining/end of the tokens
+	gc.ManagerToken = strings.TrimSpace(managerToken)
+	gc.WorkerToken = strings.TrimSpace(workerToken)
+
+	// set this host as bootstrap Swarm Manager
+	gc.BootstrapManagerURL = fmt.Sprintf("%s", net.JoinHostPort(ip, "2377"))
 
 	return nil
 }

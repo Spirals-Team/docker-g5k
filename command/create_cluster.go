@@ -311,33 +311,61 @@ func (c *CreateClusterCommand) generateNodesConfig(site string, jobID int, deplo
 	return nodesConfig, nil
 }
 
+// extractSiteFromNodeName returns the site and the node ID from its name (format: {siteName}-{nodeID})
+func (c *CreateClusterCommand) extractSiteNodeIDFromNodeName(nodeName string) (string, string, error) {
+	// extract site and ID
+	v := strings.Split(nodeName, "-")
+
+	// a name is only composed of the site and ID
+	if len(v) != 2 {
+		return "", "", fmt.Errorf("Syntax error in node name '%s', it should be '{siteName}-{nodeID}'", nodeName)
+	}
+
+	// return the site
+	return v[0], v[1], nil
+}
+
 // ProvisionNodes provision the nodes
-func (c *CreateClusterCommand) provisionNodes(sites map[string]map[string]node.Node) error {
+func (c *CreateClusterCommand) provisionNodes(deployedNodes *map[string]node.Node) error {
 	log.Info("Starting nodes provisionning...")
 
-	// TODO: bootstrap node
-	/*
-		- get a Swarm master node
-		- provision the node
-		- remove the node from the list
-	*/
+	// Swarm bootstrap node :
+	// We need to deploy one Swarm Master before any other nodes to get the Manager/Worker tokens (Swarm Mode)
+	for k := range c.swarmMasterNodes {
+		// get a bootstrap node (random Swarm Master)
+		bootstrapNode := (*deployedNodes)[k]
+		log.Infof("Swarm bootstrap node is '%s' ('%s')", bootstrapNode.MachineName, bootstrapNode.NodeName)
+
+		// provision the node
+		bootstrapNode.ProvisionNode()
+
+		// remove the node from the list
+		delete(*deployedNodes, k)
+
+		break
+	}
 
 	// provision all deployed nodes
 	var wg sync.WaitGroup
-	for _, site := range sites {
-		for _, n := range site {
-			wg.Add(1)
-			go func(n node.Node) {
-				defer wg.Done()
-				n.ProvisionNode()
-			}(n)
-		}
+	for _, n := range *deployedNodes {
+		wg.Add(1)
+		go func(n node.Node) {
+			defer wg.Done()
+			n.ProvisionNode()
+		}(n)
 	}
 
 	// wait nodes provisionning to finish
 	wg.Wait()
 
 	return nil
+}
+
+// appendSiteDeployedNodesConfig append the site deployed nodes config to the global nodes config
+func (c *CreateClusterCommand) appendSiteDeployedNodesConfig(globalNodesConfig *map[string]node.Node, siteNodesConfig *map[string]node.Node) {
+	for k, v := range *siteNodesConfig {
+		(*globalNodesConfig)[k] = v
+	}
 }
 
 // CreateCluster create nodes in docker-machine
@@ -352,7 +380,7 @@ func (c *CreateClusterCommand) createCluster() error {
 	defer c.nodesGlobalConfig.LibMachineClient.Close()
 
 	// stores the deployed nodes configuration by sites
-	nodesConfigBySites := make(map[string]map[string]node.Node)
+	deployedNodesConfig := make(map[string]node.Node)
 
 	// process nodes reservations by sites
 	for site, nb := range c.nodesReservation {
@@ -365,23 +393,23 @@ func (c *CreateClusterCommand) createCluster() error {
 		}
 
 		// deploy nodes
-		deployedNodes, err := g5kAPI.DeployNodes(site, string(c.nodesGlobalConfig.SSHKeyPair.PublicKey), jobID, c.cli.String("g5k-image"))
+		deployedNodesName, err := g5kAPI.DeployNodes(site, string(c.nodesGlobalConfig.SSHKeyPair.PublicKey), jobID, c.cli.String("g5k-image"))
 		if err != nil {
 			return err
 		}
 
 		// generate deployed nodes configuration
-		nodesConfig, err := c.generateNodesConfig(site, jobID, deployedNodes)
+		siteDeployedNodesConfig, err := c.generateNodesConfig(site, jobID, deployedNodesName)
 		if err != nil {
 			return err
 		}
 
 		// copy nodes configuration
-		nodesConfigBySites[site] = nodesConfig
+		c.appendSiteDeployedNodesConfig(&deployedNodesConfig, &siteDeployedNodesConfig)
 	}
 
 	// provision deployed nodes
-	if err := c.provisionNodes(nodesConfigBySites); err != nil {
+	if err := c.provisionNodes(&deployedNodesConfig); err != nil {
 		return err
 	}
 
