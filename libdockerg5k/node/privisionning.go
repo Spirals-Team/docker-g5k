@@ -4,36 +4,12 @@ import (
 	"encoding/json"
 	"path/filepath"
 
-	"github.com/Spirals-Team/docker-g5k/libdockerg5k/swarm"
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/weave"
-	"github.com/Spirals-Team/docker-machine-driver-g5k/driver"
+	g5kdriver "github.com/Spirals-Team/docker-machine-driver-g5k/driver"
 	"github.com/docker/machine/commands/mcndirs"
-	"github.com/docker/machine/libmachine"
 	"github.com/docker/machine/libmachine/auth"
 	"github.com/docker/machine/libmachine/log"
 )
-
-// NodeGlobalConfig contain needed information to provision a node
-type NodeGlobalConfig struct {
-	// libMachine client
-	libMachineClient *libmachine.Client
-
-	// g5k driver config (needed or Docker Machine will not work afterwards)
-	g5kUsername          string
-	g5kPassword          string
-	g5kSite              string
-	g5kImage             string
-	g5kWalltime          string
-	g5kSSHPrivateKeyPath string
-	g5kSSHPublicKeyPath  string
-
-	// Swarm configuration
-	swarmStandaloneGlobalConfig *swarm.SwarmStandaloneGlobalConfig
-	swarmModeGlobalConfig       *swarm.SwarmModeGlobalConfig
-
-	// Weave networking
-	weaveNetworkingEnabled bool
-}
 
 // createHostAuthOptions returns a configured AuthOptions for HostOptions struct
 func createHostAuthOptions(machineName string) *auth.Options {
@@ -51,23 +27,22 @@ func createHostAuthOptions(machineName string) *auth.Options {
 }
 
 // ProvisionNode will install Docker and configure Swarm (if enabled) on the node
-func (gc *NodeGlobalConfig) ProvisionNode(g5kJobID int, nodeName string, machineName string, isMaster bool) error {
+func (n *Node) ProvisionNode() error {
 	// create driver instance for libmachine
-	driver := driver.NewDriver()
+	driver := g5kdriver.NewDriver()
 
 	// set g5k driver parameters
-	driver.G5kUsername = gc.g5kUsername
-	driver.G5kPassword = gc.g5kPassword
-	driver.G5kSite = gc.g5kSite
-	driver.G5kImage = gc.g5kImage
-	driver.G5kWalltime = gc.g5kWalltime
-	driver.G5kSSHPrivateKeyPath = gc.g5kSSHPrivateKeyPath
-	driver.G5kSSHPublicKeyPath = gc.g5kSSHPublicKeyPath
-	driver.G5kJobID = g5kJobID
-	driver.G5kHostToProvision = nodeName
+	driver.G5kUsername = n.GlobalConfig.G5kUsername
+	driver.G5kPassword = n.GlobalConfig.G5kPassword
+	driver.G5kSite = n.G5kSite
+	driver.G5kImage = n.GlobalConfig.G5kImage
+	driver.G5kWalltime = n.GlobalConfig.G5kWalltime
+	driver.G5kJobID = n.G5kJobID
+	driver.G5kHostToProvision = n.NodeName
+	driver.SSHKeyPair = n.GlobalConfig.SSHKeyPair
 
 	// set base driver parameters
-	driver.BaseDriver.MachineName = machineName
+	driver.BaseDriver.MachineName = n.MachineName
 	driver.BaseDriver.StorePath = mcndirs.GetBaseDir()
 	driver.BaseDriver.SSHKeyPath = driver.GetSSHKeyPath()
 
@@ -78,26 +53,26 @@ func (gc *NodeGlobalConfig) ProvisionNode(g5kJobID int, nodeName string, machine
 	}
 
 	// create a new host config
-	h, err := gc.libMachineClient.NewHost("g5k", data)
+	h, err := n.GlobalConfig.LibMachineClient.NewHost("g5k", data)
 	if err != nil {
 		return err
 	}
 
 	// mandatory, or driver will use bad paths for certificates
-	h.HostOptions.AuthOptions = createHostAuthOptions(machineName)
+	h.HostOptions.AuthOptions = createHostAuthOptions(n.MachineName)
 
 	// set swarm options if Swarm standalone is enabled
-	if gc.swarmStandaloneGlobalConfig != nil {
-		h.HostOptions.SwarmOptions = gc.swarmStandaloneGlobalConfig.CreateSwarmStandaloneNodeConfig(nodeName, isMaster, true)
+	if n.GlobalConfig.SwarmStandaloneGlobalConfig != nil {
+		h.HostOptions.SwarmOptions = n.GlobalConfig.SwarmStandaloneGlobalConfig.CreateNodeConfig(n.NodeName, n.GlobalConfig.SwarmMasterNode[n.MachineName], true)
 	}
 
 	// provision the new machine
-	if err := gc.libMachineClient.Create(h); err != nil {
+	if err := n.GlobalConfig.LibMachineClient.Create(h); err != nil {
 		return err
 	}
 
 	// install and run Weave Net / Discovery if Weave networking mode and Swarm standalone are enabled
-	if gc.weaveNetworkingEnabled && (gc.swarmStandaloneGlobalConfig != nil) {
+	if n.GlobalConfig.WeaveNetworkingEnabled && (n.GlobalConfig.SwarmStandaloneGlobalConfig != nil) {
 		// run Weave Net
 		log.Info("Running Weave Net...")
 		if err := weave.RunWeaveNet(h); err != nil {
@@ -106,8 +81,24 @@ func (gc *NodeGlobalConfig) ProvisionNode(g5kJobID int, nodeName string, machine
 
 		// run Weave Discovery
 		log.Info("Running Weave Discovery...")
-		if err := weave.RunWeaveDiscovery(h, gc.swarmStandaloneGlobalConfig.Discovery); err != nil {
+		if err := weave.RunWeaveDiscovery(h, n.GlobalConfig.SwarmStandaloneGlobalConfig.Discovery); err != nil {
 			return err
+		}
+	}
+
+	// Swarm mode
+	if n.GlobalConfig.SwarmModeGlobalConfig != nil {
+		// check if cluster is already initialized
+		if !n.GlobalConfig.SwarmModeGlobalConfig.IsSwarmModeClusterInitialized() {
+			// initialize Swarm mode cluster (only for bootstrap node)
+			if err := n.GlobalConfig.SwarmModeGlobalConfig.InitSwarmModeCluster(h); err != nil {
+				return err
+			}
+		} else {
+			// join the Swarm mode cluster
+			if err := n.GlobalConfig.SwarmModeGlobalConfig.JoinSwarmModeCluster(h, n.GlobalConfig.SwarmMasterNode[n.MachineName]); err != nil {
+				return err
+			}
 		}
 	}
 
