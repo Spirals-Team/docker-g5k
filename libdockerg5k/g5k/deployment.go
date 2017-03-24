@@ -1,19 +1,11 @@
 package g5k
 
 import (
-	"io/ioutil"
-
 	"github.com/Spirals-Team/docker-machine-driver-g5k/api"
 )
 
 // DeployNodes submit a deployment request and returns the deployed nodes hostname
-func (g *G5K) DeployNodes(site string, sshPublicKeyPath string, jobID int, image string) ([]string, error) {
-	// reading ssh public key file
-	pubkey, err := ioutil.ReadFile(sshPublicKeyPath)
-	if err != nil {
-		return nil, err
-	}
-
+func (g *G5K) DeployNodes(site string, sshPublicKey string, jobID int, image string) ([]string, error) {
 	// get required site API client
 	siteAPI := g.getSiteAPI(site)
 
@@ -27,7 +19,7 @@ func (g *G5K) DeployNodes(site string, sshPublicKeyPath string, jobID int, image
 	deploymentReq := api.DeploymentRequest{
 		Nodes:       job.Nodes,
 		Environment: image,
-		Key:         string(pubkey),
+		Key:         sshPublicKey,
 	}
 
 	// deploy environment
