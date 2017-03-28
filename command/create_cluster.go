@@ -10,6 +10,7 @@ import (
 	"github.com/docker/machine/commands/mcndirs"
 	"github.com/docker/machine/libmachine"
 	"github.com/docker/machine/libmachine/log"
+	"github.com/kujtimiihoxha/go-brace-expansion"
 
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/g5k"
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/node"
@@ -132,25 +133,26 @@ func (c *CreateClusterCommand) parseReserveNodesFlag() error {
 	// initialize nodes reservation map
 	c.nodesReservation = make(map[string]int)
 
-	// TODO: Brace expansion
+	for _, paramValue := range c.cli.StringSlice("g5k-reserve-nodes") {
+		// brace expansion support
+		for _, r := range gobrex.Expand(paramValue) {
+			// extract site name and number of nodes to reserve
+			v := strings.Split(r, ":")
 
-	for _, r := range c.cli.StringSlice("g5k-reserve-nodes") {
-		// extract site name and number of nodes to reserve
-		v := strings.Split(r, ":")
+			// we only need 2 parameters : site and number of nodes
+			if len(v) != 2 {
+				return fmt.Errorf("Syntax error in nodes reservation parameter: '%s'", r)
+			}
 
-		// we only need 2 parameters : site and number of nodes
-		if len(v) != 2 {
-			return fmt.Errorf("Syntax error in nodes reservation parameter: '%s'", r)
+			// convert nodes number to int
+			nb, err := strconv.Atoi(v[1])
+			if err != nil {
+				return fmt.Errorf("Error while converting number of nodes in reservation parameters: '%s'", r)
+			}
+
+			// store nodes to reserve for site
+			c.nodesReservation[v[0]] = nb
 		}
-
-		// convert nodes number to int
-		nb, err := strconv.Atoi(v[1])
-		if err != nil {
-			return fmt.Errorf("Error while converting number of nodes in reservation parameters: '%s'", r)
-		}
-
-		// store nodes to reserve for site
-		c.nodesReservation[v[0]] = nb
 	}
 
 	return nil
@@ -309,20 +311,6 @@ func (c *CreateClusterCommand) generateNodesConfig(site string, jobID int, deplo
 	}
 
 	return nodesConfig, nil
-}
-
-// extractSiteFromNodeName returns the site and the node ID from its name (format: {siteName}-{nodeID})
-func (c *CreateClusterCommand) extractSiteNodeIDFromNodeName(nodeName string) (string, string, error) {
-	// extract site and ID
-	v := strings.Split(nodeName, "-")
-
-	// a name is only composed of the site and ID
-	if len(v) != 2 {
-		return "", "", fmt.Errorf("Syntax error in node name '%s', it should be '{siteName}-{nodeID}'", nodeName)
-	}
-
-	// return the site
-	return v[0], v[1], nil
 }
 
 // ProvisionNodes provision the nodes
