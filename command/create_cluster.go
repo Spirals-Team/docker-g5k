@@ -163,11 +163,12 @@ func (c *CreateClusterCommand) parseSwarmMasterFlag() error {
 	// initialize Swarm masters map
 	c.swarmMasterNodes = make(map[string]bool)
 
-	// TODO: Brace expansion
-
-	for _, n := range c.cli.StringSlice("swarm-master") {
-		// TODO: check if node exist (id too low/high)
-		c.swarmMasterNodes[n] = true
+	for _, paramValue := range c.cli.StringSlice("swarm-master") {
+		// brace expansion support
+		for _, n := range gobrex.Expand(paramValue) {
+			// TODO: check if node exist (id too low/high)
+			c.swarmMasterNodes[n] = true
+		}
 	}
 
 	return nil
