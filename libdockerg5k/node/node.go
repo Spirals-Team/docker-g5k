@@ -50,16 +50,6 @@ type Node struct {
 	G5kJobID int
 
 	// Docker Engine
-	engineOpt   []string
-	engineLabel []string
-}
-
-// AddEngineOpt add an option to Docker Engine
-func (n *Node) AddEngineOpt(opt string) {
-	n.engineOpt = append(n.engineOpt, opt)
-}
-
-// AddEngineLabel add a label to Docker Engine
-func (n *Node) AddEngineLabel(label string) {
-	n.engineLabel = append(n.engineLabel, label)
+	EngineOpt   []string
+	EngineLabel []string
 }

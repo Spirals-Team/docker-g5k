@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/codegangsta/cli"
@@ -15,6 +14,17 @@ import (
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/g5k"
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/node"
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/swarm"
+)
+
+const (
+	// regexNodeName match the site (nodeSite) and the ID (nodeID) of a node from its name (nodeName)
+	regexNodeName = "(?P<nodeName>(?P<nodeSite>[[:alpha:]]+)-(?P<nodeID>[[:digit:]]+))"
+
+	// regexReservation match the site (site) and the number of nodes (nbNodes) from a reservation
+	regexReservation = "^(?P<site>[[:alpha:]]+):(?P<nbNodes>[[:digit:]]+)$"
+
+	// regexNodeParamFlag match the node site/ID and the parameter (param, paramName, paramValue) from a CLI flag using the format : {nodeName}:paramName=paramValue
+	regexNodeParamFlag = "^" + regexNodeName + ":(?P<param>(?P<paramName>[[:ascii:]]+)=(?P<paramValue>[[:ascii:]]+))$"
 )
 
 var (
@@ -126,6 +136,8 @@ type CreateClusterCommand struct {
 	nodesReservation  map[string]int
 	swarmMasterNodes  map[string]bool
 	nodesGlobalConfig *node.GlobalConfig
+	nodesEngineLabel  map[string][]string
+	nodesEngineOpt    map[string][]string
 }
 
 // parseReserveNodesFlag parse the nodes reservation flag (site):(number of nodes)
@@ -137,21 +149,19 @@ func (c *CreateClusterCommand) parseReserveNodesFlag() error {
 		// brace expansion support
 		for _, r := range gobrex.Expand(paramValue) {
 			// extract site name and number of nodes to reserve
-			v := strings.Split(r, ":")
-
-			// we only need 2 parameters : site and number of nodes
-			if len(v) != 2 {
-				return fmt.Errorf("Syntax error in nodes reservation parameter: '%s'", r)
+			v, err := ParseCliFlag(regexReservation, r)
+			if err != nil {
+				return fmt.Errorf("Syntax error in nodes reservation parameter: '%s'", paramValue)
 			}
 
 			// convert nodes number to int
-			nb, err := strconv.Atoi(v[1])
+			nb, err := strconv.Atoi(v["nbNodes"])
 			if err != nil {
 				return fmt.Errorf("Error while converting number of nodes in reservation parameters: '%s'", r)
 			}
 
 			// store nodes to reserve for site
-			c.nodesReservation[v[0]] = nb
+			c.nodesReservation[v["site"]] = nb
 		}
 	}
 
@@ -168,6 +178,48 @@ func (c *CreateClusterCommand) parseSwarmMasterFlag() error {
 		for _, n := range gobrex.Expand(paramValue) {
 			// TODO: check if node exist (id too low/high)
 			c.swarmMasterNodes[n] = true
+		}
+	}
+
+	return nil
+}
+
+// parseEngineOptFlag parse the nodes Engine Opt flag {site}-{id}:optname=optvalue
+func (c *CreateClusterCommand) parseEngineOptFlag() error {
+	// initialize nodes Engine Opt map
+	c.nodesEngineOpt = make(map[string][]string)
+
+	for _, paramValue := range c.cli.StringSlice("engine-opt") {
+		for _, f := range gobrex.Expand(paramValue) {
+			// extract node name and parameter
+			v, err := ParseCliFlag(regexNodeParamFlag, f)
+			if err != nil {
+				return fmt.Errorf("Syntax error in node Engine flag parameter: '%s'", paramValue)
+			}
+
+			// append the parameter to the node's parameter list
+			c.nodesEngineOpt[v["nodeName"]] = append(c.nodesEngineOpt[v["nodeName"]], v["param"])
+		}
+	}
+
+	return nil
+}
+
+// parseEngineLabelFlag parse the nodes Engine label flag {site}-{id}:flagname=flagvalue
+func (c *CreateClusterCommand) parseEngineLabelFlag() error {
+	// initialize nodes Engine Label map
+	c.nodesEngineLabel = make(map[string][]string)
+
+	for _, paramValue := range c.cli.StringSlice("engine-label") {
+		for _, f := range gobrex.Expand(paramValue) {
+			// extract node name and parameter
+			v, err := ParseCliFlag(regexNodeParamFlag, f)
+			if err != nil {
+				return fmt.Errorf("Syntax error in node Engine flag parameter: '%s'", paramValue)
+			}
+
+			// append the label to the node's label list
+			c.nodesEngineLabel[v["nodeName"]] = append(c.nodesEngineLabel[v["nodeName"]], v["param"])
 		}
 	}
 
@@ -204,6 +256,16 @@ func (c *CreateClusterCommand) checkCliParameters() error {
 	// check walltime
 	if c.cli.String("g5k-walltime") == "" {
 		return fmt.Errorf("You must provide a walltime")
+	}
+
+	// parse engine opt
+	if err := c.parseEngineOptFlag(); err != nil {
+		return err
+	}
+
+	// parse engine label
+	if err := c.parseEngineLabelFlag(); err != nil {
+		return err
 	}
 
 	// check Swarm Standalone parameters
@@ -308,6 +370,8 @@ func (c *CreateClusterCommand) generateNodesConfig(site string, jobID int, deplo
 			MachineName:  machineName,
 			G5kSite:      site,
 			G5kJobID:     jobID,
+			EngineOpt:    c.nodesEngineOpt[machineName],
+			EngineLabel:  c.nodesEngineLabel[machineName],
 		}
 	}
 

@@ -58,6 +58,10 @@ func (n *Node) ProvisionNode() error {
 		return err
 	}
 
+	// set Docker Engine parameters
+	h.HostOptions.EngineOptions.ArbitraryFlags = n.EngineOpt
+	h.HostOptions.EngineOptions.Labels = n.EngineLabel
+
 	// mandatory, or driver will use bad paths for certificates
 	h.HostOptions.AuthOptions = createHostAuthOptions(n.MachineName)
 
