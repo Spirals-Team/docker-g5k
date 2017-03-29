@@ -35,96 +35,113 @@ var (
 		Action: RunCreateClusterCommand,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "g5k-username",
-				Usage: "Your Grid5000 account username",
-				Value: "",
+				EnvVar: "G5K_USERNAME",
+				Name:   "g5k-username",
+				Usage:  "Your Grid5000 account username",
+				Value:  "",
 			},
 
 			cli.StringFlag{
-				Name:  "g5k-password",
-				Usage: "Your Grid5000 account password",
-				Value: "",
+				EnvVar: "G5K_PASSWORD",
+				Name:   "g5k-password",
+				Usage:  "Your Grid5000 account password",
+				Value:  "",
 			},
 
 			cli.StringSliceFlag{
-				Name:  "g5k-reserve-nodes",
-				Usage: "Reserve nodes on a site (ex: lille:24)",
+				EnvVar: "G5K_RESERVE_NODES",
+				Name:   "g5k-reserve-nodes",
+				Usage:  "Reserve nodes on a site (ex: lille:24)",
 			},
 
 			cli.StringFlag{
-				Name:  "g5k-walltime",
-				Usage: "Machine's lifetime (HH:MM:SS)",
-				Value: "1:00:00",
+				EnvVar: "G5K_WALLTIME",
+				Name:   "g5k-walltime",
+				Usage:  "Machine's lifetime (HH:MM:SS)",
+				Value:  "1:00:00",
 			},
 
 			cli.StringFlag{
-				Name:  "g5k-image",
-				Usage: "Name of the image to deploy",
-				Value: "jessie-x64-min",
+				EnvVar: "G5K_IMAGE",
+				Name:   "g5k-image",
+				Usage:  "Name of the image to deploy",
+				Value:  "jessie-x64-min",
 			},
 
 			cli.StringFlag{
-				Name:  "g5k-resource-properties",
-				Usage: "Resource selection with OAR properties (SQL format)",
-				Value: "",
+				EnvVar: "G5K_RESOURCE_PROPERTIES",
+				Name:   "g5k-resource-properties",
+				Usage:  "Resource selection with OAR properties (SQL format)",
+				Value:  "",
 			},
 
 			cli.StringSliceFlag{
-				Name:  "engine-opt",
-				Usage: "Specify arbitrary flags to include on the selected node(s) engine (site-id:flag=value)",
+				EnvVar: "ENGINE_OPT",
+				Name:   "engine-opt",
+				Usage:  "Specify arbitrary flags to include on the selected node(s) engine (site-id:flag=value)",
 			},
 
 			cli.StringSliceFlag{
-				Name:  "engine-label",
-				Usage: "Specify labels for the selected node(s) engine (site-id:labelname=labelvalue)",
+				EnvVar: "ENGINE_LABEL",
+				Name:   "engine-label",
+				Usage:  "Specify labels for the selected node(s) engine (site-id:labelname=labelvalue)",
 			},
 
 			cli.StringSliceFlag{
-				Name:  "swarm-master",
-				Usage: "Select node(s) to be promoted to Swarm Master(standalone)/Manager(Mode)",
+				EnvVar: "SWARM_MASTER",
+				Name:   "swarm-master",
+				Usage:  "Select node(s) to be promoted to Swarm Master(standalone)/Manager(Mode)",
 			},
 
 			cli.BoolFlag{
-				Name:  "swarm-mode-enable",
-				Usage: "Create a Swarm mode cluster",
+				EnvVar: "SWARM_MODE_ENABLE",
+				Name:   "swarm-mode-enable",
+				Usage:  "Create a Swarm mode cluster",
 			},
 
 			cli.BoolFlag{
-				Name:  "swarm-standalone-enable",
-				Usage: "Create a Swarm standalone cluster",
+				EnvVar: "SWARM_STANDALONE_ENABLE",
+				Name:   "swarm-standalone-enable",
+				Usage:  "Create a Swarm standalone cluster",
 			},
 
 			cli.StringFlag{
-				Name:  "swarm-standalone-discovery",
-				Usage: "Discovery service to use with Swarm",
-				Value: "",
+				EnvVar: "SWARM_STANDALONE_DISCOVERY",
+				Name:   "swarm-standalone-discovery",
+				Usage:  "Discovery service to use with Swarm",
+				Value:  "",
 			},
 
 			cli.StringFlag{
-				Name:  "swarm-standalone-image",
-				Usage: "Specify Docker image to use for Swarm",
-				Value: "swarm:latest",
+				EnvVar: "SWARM_STANDALONE_IMAGE",
+				Name:   "swarm-standalone-image",
+				Usage:  "Specify Docker image to use for Swarm",
+				Value:  "swarm:latest",
 			},
 
 			cli.StringFlag{
-				Name:  "swarm-standalone-strategy",
-				Usage: "Define a default scheduling strategy for Swarm",
-				Value: "spread",
+				EnvVar: "SWARM_STANDALONE_STRATEGY",
+				Name:   "swarm-standalone-strategy",
+				Usage:  "Define a default scheduling strategy for Swarm",
+				Value:  "spread",
 			},
 
 			cli.StringSliceFlag{
-				Name:  "swarm-standalone-opt",
-				Usage: "Define arbitrary flags for Swarm master (can be provided multiple times)",
+				EnvVar: "SWARM_STANDALONE_OPT",
+				Name:   "swarm-standalone-opt",
+				Usage:  "Define arbitrary flags for Swarm master (can be provided multiple times)",
 			},
 
 			cli.StringSliceFlag{
-				Name:  "swarm-standalone-join-opt",
-				Usage: "Define arbitrary flags for Swarm join (can be provided multiple times)",
+				EnvVar: "SWARM_STANDALONE_JOIN_OPT",
+				Name:   "swarm-standalone-join-opt",
+				Usage:  "Define arbitrary flags for Swarm join (can be provided multiple times)",
 			},
 
 			cli.BoolFlag{
-				Name:  "weave-networking",
-				Usage: "Use Weave for networking (Only if Swarm standalone is enabled)",
+				EnvVar: "WEAVE_NETWORKING",
+				Name:   "weave-networking",
+				Usage:  "Use Weave for networking (Only if Swarm standalone is enabled)",
 			},
 		},
 	}

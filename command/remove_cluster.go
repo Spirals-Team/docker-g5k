@@ -20,9 +20,10 @@ var (
 		Action: RunRemoveClusterCommand,
 		Flags: []cli.Flag{
 			cli.IntFlag{
-				Name:  "g5k-job-id",
-				Usage: "Only remove nodes related to the provided job ID (By default ALL nodes from ALL jobs will be removed)",
-				Value: -1,
+				EnvVar: "G5K_JOB_ID",
+				Name:   "g5k-job-id",
+				Usage:  "Only remove nodes related to the provided job ID (By default ALL nodes from ALL jobs will be removed)",
+				Value:  -1,
 			},
 		},
 	}
