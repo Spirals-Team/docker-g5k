@@ -12,9 +12,6 @@ func ParseCliFlag(regex string, str string) (map[string]string, error) {
 
 	// get the capturing groups names
 	sn := re.SubexpNames()
-	if len(sn) == 0 {
-		return nil, fmt.Errorf("The use of named capturing groups is required")
-	}
 
 	// extract informations from input string
 	m := re.FindStringSubmatch(str)
@@ -28,6 +25,11 @@ func ParseCliFlag(regex string, str string) (map[string]string, error) {
 	r := make(map[string]string)
 	for i, n := range sn {
 		r[n] = m[i]
+	}
+
+	// test if named capturing groups were used (otherwise there is only one element in the map)
+	if len(r) != len(sn) {
+		return nil, fmt.Errorf("The use of named capturing groups is required")
 	}
 
 	return r, nil
