@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/Spirals-Team/docker-g5k.svg)](https://travis-ci.org/Spirals-Team/docker-g5k)
+
 # docker-g5k
 A tool to create a Docker Swarm cluster for Docker Machine on the Grid5000 testbed infrastructure.  
 
@@ -44,49 +46,71 @@ Do not forget to configure your DNS or use OpenVPN DNS auto-configuration.
 Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/mediawiki/index.php/VPN).
 
 ### Command line flags
+Flags marked with `[ ]` can be given multiple times and the values will be added.
 
-All flags can be set using environment variables, the name is the same as the flag in uppercase and replacing hyphens by underscores.
-For example, the env variable for the flag `--g5k-resource-properties` is `G5K_RESOURCE_PROPERTIES`.
+Flags marked with `{ }` support brace expansion (same format as sh/bash shells) to generate combinations.  
+Please refer to the flags format in "Flags usage" section of the command.
 
-Flags marked with `[]` can be set multiple times and the values will be added.
+#### For `create-cluster` command
 
-Flags marked with `{}` support brace expansions (same format as sh/bash shells) to generate combinations.
-For example, in the flag  `--g5k-reserve-nodes` you can use it to reserve the same number of nodes on multiple sites : `{lille,nantes}:16`,
-or select a range of nodes like in the `--swarm-master` flag : `lille-{0..2}`.
+##### Flags description
+* **`--g5k-username` : Your Grid5000 account username (required)**
+* **`--g5k-password` : Your Grid5000 account password (required)**
+* **`--g5k-reserve-nodes` : Reserve nodes on a site (required)**
+* `--g5k-walltime` : Timelife of the nodes (format: "hh:mm:ss")
+* `--g5k-image` : Name of the image to deploy on the nodes
+* `--g5k-resource-properties` :  Resource selection with OAR properties (SQL format)
+* `--engine-opt` : Specify flags to include on the selected node(s) engine
+* `--engine-label` : Specify labels for the selected node(s) engine
+* `--swarm-master` : Select node(s) to be promoted to Swarm Master
+* `--swarm-mode-enable` : Create a Swarm mode cluster
+* `--swarm-standalone-enable` : Create a Swarm standalone cluster
+* `--swarm-standalone-discovery` : Discovery service to use with Swarm
+* `--swarm-standalone-image` : Specify the Docker image to use for Swarm
+* `--swarm-standalone-strategy` : Define a default scheduling strategy for Swarm
+* `--swarm-standalone-opt` : Define arbitrary global flags for Swarm master
+* `--swarm-standalone-join-opt` : Define arbitrary global flags for Swarm join
+* `--weave-networking` : Use Weave for networking (Only with Swarm standalone)
 
-#### Cluster creation flags
+##### Flags usage
+|             Option             |          Environment         |     Default value     | { } | [ ] |
+|--------------------------------|------------------------------|-----------------------|-----|-----|
+| `--g5k-username`               | `G5K_USERNAME`               |                       | No  | No  |
+| `--g5k-password`               | `G5K_PASSWORD`               |                       | No  | No  |
+| `--g5k-reserve-nodes`          | `G5K_RESERVE_NODES`          |                       | Yes | Yes |
+| `--g5k-walltime`               | `G5K_WALLTIME`               | "1:00:00"             | No  | No  |
+| `--g5k-image`                  | `G5K_IMAGE`                  | "jessie-x64-min"      | No  | No  |
+| `--g5k-resource-properties`    | `G5K_RESOURCE_PROPERTIES`    |                       | No  | No  |
+| `--engine-opt`                 | `ENGINE_OPT`                 |                       | Yes | Yes |
+| `--engine-label`               | `ENGINE_LABEL`               |                       | Yes | Yes |
+| `--swarm-master`               | `SWARM_MASTER`               |                       | Yes | Yes |
+| `--swarm-mode-enable`          | `SWARM_MODE_ENABME`          |                       | No  | No  |
+| `--swarm-standalone-enable`    | `SWARM_STANDALONE_ENABLE`    |                       | No  | No  |
+| `--swarm-standalone-discovery` | `SWARM_STANDALONE_DISCOVERY` | New token             | No  | No  |
+| `--swarm-standalone-image`     | `SWARM_STANDALONE_IMAGE`     | "swarm:latest"        | No  | No  |
+| `--swarm-standalone-strategy`  | `SWARM_STANDALONE_STRATEGY`  | "spread"              | No  | No  |
+| `--swarm-standalone-opt`       | `SWARM_STANDALONE_OPT`       |                       | No  | Yes |
+| `--swarm-standalone-join-opt`  | `SWARM_STANDALONE_JOIN_OPT`  |                       | No  | Yes |
+| `--weave-networking`           | `WEAVE_NETWORKING`           |                       | No  | No  |
 
-|             Option             |                       Description                       |     Default value     |  Required  |
-|--------------------------------|---------------------------------------------------------|-----------------------|------------|
-| `--g5k-username`               | Your Grid5000 account username                          |                       | Yes        |
-| `--g5k-password`               | Your Grid5000 account password                          |                       | Yes        |
-| `--g5k-reserve-nodes` [ ],{ }  | Reserve nodes on a site                                 |                       | Yes        |
-| `--g5k-walltime`               | Timelife of the machine                                 | "1:00:00"             | No         |
-| `--g5k-image`                  | Name of the image to deploy                             | "jessie-x64-min"      | No         |
-| `--g5k-resource-properties`    | Resource selection with OAR properties (SQL format)     |                       | No         |
-| `--engine-opt` [ ],{ }         | Specify flags to include on the selected node(s) engine |                       | No         |
-| `--engine-label` [ ],{ }       | Specify labels for the selected node(s) engine          |                       | No         |
-| `--swarm-master` [ ],{ }       | Select node(s) to be promoted to Swarm Master           |                       | No         |
-| `--swarm-mode-enable`          | Create a Swarm mode cluster                             |                       | No         |
-| `--swarm-standalone-enable`    | Create a Swarm standalone cluster                       |                       | No         |
-| `--swarm-standalone-discovery` | Discovery service to use with Swarm                     | Generate a new token  | No         |
-| `--swarm-standalone-image`     | Specify Docker image to use for Swarm                   | "swarm:latest"        | No         |
-| `--swarm-standalone-strategy`  | Define a default scheduling strategy for Swarm          | "spread"              | No         |
-| `--swarm-standalone-opt`       | Define arbitrary global flags for Swarm master          |                       | No         |
-| `--swarm-standalone-join-opt`  | Define arbitrary global flags for Swarm join            |                       | No         |
-| `--weave-networking`           | Use Weave for networking (Only with Swarm standalone)   |                       | No         |
+Flag `--g5k-reserve-nodes` format is `site:numberOfNodes` and brace expansion are supported.  
+For example, `lille-16`, `{lille,nantes}-16`.
 
-Engine flags `--engine-*` format is `node-name:key=val` and brace expansions are supported.  
-For example, `lille-0:mykey=myval`, `lille-{0..5}:mykey=myval`.  
+Engine flags `--engine-*` format is `node-name:key=val` and brace expansion are supported.  
+For example, `lille-0:mykey=myval`, `lille-{0..5}:mykey=myval`, `lille-{0,2,4}:mykey=myval`.  
 
 For `--engine-opt` flag, please refer to [Docker documentation](https://docs.docker.com/engine/reference/commandline/dockerd/) for supported parameters.  
 **Test your parameters on a single node before deploying a cluster ! If your flags are incorrect, Docker wont start and you should redeploy the entire cluster !**
 
-#### Cluster deletion flags
+#### For `remove-cluster` command
 
-|             Option             |                       Description                       |     Default value     |  Required  |
-|--------------------------------|---------------------------------------------------------|-----------------------|------------|
-| `--g5k-job-id` [ ]             | Only remove nodes related to the provided job ID        | "1:00:00"             | No         |
+##### Flags description
+* `--g5k-job-id` : Only remove nodes related to the provided job ID
+
+##### Flags usage
+|             Option             |          Environment         |     Default value     | { } | [ ] |
+|--------------------------------|------------------------------|-----------------------|-----|-----|
+| `--g5k-job-id`                 | `G5K_JOB_ID`                 |                       | No  | Yes |
 
 ### Examples
 
