@@ -193,8 +193,13 @@ func (c *CreateClusterCommand) parseSwarmMasterFlag(flag []string) error {
 	for _, paramValue := range flag {
 		// brace expansion support
 		for _, n := range gobrex.Expand(paramValue) {
-			// TODO: check if node exist (id too low/high)
-			c.swarmMasterNodes[n] = true
+			// extract site and node ID
+			v, err := ParseCliFlag(regexNodeName, n)
+			if err != nil {
+				return fmt.Errorf("Syntax error in Swarm master parameter: '%s'", paramValue)
+			}
+
+			c.swarmMasterNodes[v["nodeName"]] = true
 		}
 	}
 
@@ -313,6 +318,12 @@ func (c *CreateClusterCommand) checkCliParameters() error {
 
 	// parse Swarm master flag only if Swarm is enabled
 	if c.cli.Bool("swarm-standalone-enable") || c.cli.Bool("swarm-mode-enable") {
+		// check if a Swarm master is defined
+		if len(c.cli.StringSlice("swarm-master")) == 0 {
+			return fmt.Errorf("You need to select a node to be Swarm master")
+		}
+
+		// parse Swarm master flag
 		if err := c.parseSwarmMasterFlag(c.cli.StringSlice("swarm-master")); err != nil {
 			return err
 		}
