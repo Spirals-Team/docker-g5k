@@ -158,11 +158,11 @@ type CreateClusterCommand struct {
 }
 
 // parseReserveNodesFlag parse the nodes reservation flag (site):(number of nodes)
-func (c *CreateClusterCommand) parseReserveNodesFlag() error {
+func (c *CreateClusterCommand) parseReserveNodesFlag(flag []string) error {
 	// initialize nodes reservation map
 	c.nodesReservation = make(map[string]int)
 
-	for _, paramValue := range c.cli.StringSlice("g5k-reserve-nodes") {
+	for _, paramValue := range flag {
 		// brace expansion support
 		for _, r := range gobrex.Expand(paramValue) {
 			// extract site name and number of nodes to reserve
@@ -186,11 +186,11 @@ func (c *CreateClusterCommand) parseReserveNodesFlag() error {
 }
 
 // parseSwarmMasterFlag parse the Swarm Master flag (site)-(id)
-func (c *CreateClusterCommand) parseSwarmMasterFlag() error {
+func (c *CreateClusterCommand) parseSwarmMasterFlag(flag []string) error {
 	// initialize Swarm masters map
 	c.swarmMasterNodes = make(map[string]bool)
 
-	for _, paramValue := range c.cli.StringSlice("swarm-master") {
+	for _, paramValue := range flag {
 		// brace expansion support
 		for _, n := range gobrex.Expand(paramValue) {
 			// TODO: check if node exist (id too low/high)
@@ -202,11 +202,11 @@ func (c *CreateClusterCommand) parseSwarmMasterFlag() error {
 }
 
 // parseEngineOptFlag parse the nodes Engine Opt flag {site}-{id}:optname=optvalue
-func (c *CreateClusterCommand) parseEngineOptFlag() error {
+func (c *CreateClusterCommand) parseEngineOptFlag(flag []string) error {
 	// initialize nodes Engine Opt map
 	c.nodesEngineOpt = make(map[string][]string)
 
-	for _, paramValue := range c.cli.StringSlice("engine-opt") {
+	for _, paramValue := range flag {
 		for _, f := range gobrex.Expand(paramValue) {
 			// extract node name and parameter
 			v, err := ParseCliFlag(regexNodeParamFlag, f)
@@ -223,11 +223,11 @@ func (c *CreateClusterCommand) parseEngineOptFlag() error {
 }
 
 // parseEngineLabelFlag parse the nodes Engine label flag {site}-{id}:flagname=flagvalue
-func (c *CreateClusterCommand) parseEngineLabelFlag() error {
+func (c *CreateClusterCommand) parseEngineLabelFlag(flag []string) error {
 	// initialize nodes Engine Label map
 	c.nodesEngineLabel = make(map[string][]string)
 
-	for _, paramValue := range c.cli.StringSlice("engine-label") {
+	for _, paramValue := range flag {
 		for _, f := range gobrex.Expand(paramValue) {
 			// extract node name and parameter
 			v, err := ParseCliFlag(regexNodeParamFlag, f)
@@ -261,7 +261,7 @@ func (c *CreateClusterCommand) checkCliParameters() error {
 	}
 
 	// parse nodes reservation
-	if err := c.parseReserveNodesFlag(); err != nil {
+	if err := c.parseReserveNodesFlag(c.cli.StringSlice("g5k-reserve-nodes")); err != nil {
 		return err
 	}
 
@@ -276,12 +276,12 @@ func (c *CreateClusterCommand) checkCliParameters() error {
 	}
 
 	// parse engine opt
-	if err := c.parseEngineOptFlag(); err != nil {
+	if err := c.parseEngineOptFlag(c.cli.StringSlice("engine-opt")); err != nil {
 		return err
 	}
 
 	// parse engine label
-	if err := c.parseEngineLabelFlag(); err != nil {
+	if err := c.parseEngineLabelFlag(c.cli.StringSlice("engine-label")); err != nil {
 		return err
 	}
 
@@ -313,7 +313,7 @@ func (c *CreateClusterCommand) checkCliParameters() error {
 
 	// parse Swarm master flag only if Swarm is enabled
 	if c.cli.Bool("swarm-standalone-enable") || c.cli.Bool("swarm-mode-enable") {
-		if err := c.parseSwarmMasterFlag(); err != nil {
+		if err := c.parseSwarmMasterFlag(c.cli.StringSlice("swarm-master")); err != nil {
 			return err
 		}
 	}
