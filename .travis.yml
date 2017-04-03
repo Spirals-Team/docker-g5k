@@ -3,24 +3,29 @@ language: go
 go_import_path: github.com/Spirals-Team/docker-g5k
 
 env:
+    # Linux
     - GIMME_OS=linux GIMME_ARCH=amd64
+    - GIMME_OS=linux GIMME_ARCH=386
+    # MacOS
     - GIMME_OS=darwin GIMME_ARCH=amd64
+    - GIMME_OS=darwin GIMME_ARCH=386
+    # Windows
     - GIMME_OS=windows GIMME_ARCH=amd64
+    - GIMME_OS=windows GIMME_ARCH=386
 
 install:
-    - go get -d -v ./...
+    - go get -d -t -v ./...
 
 script:
-    - go test ./...
+    # Only run tests on Linux
+    - if [ $BUILD_GOOS == "linux" ] ; then go test -v ./... ; fi
     - go build -v -o docker-g5k-$GIMME_OS-$GIMME_ARCH
 
 deploy:
     provider: releases
     skip_cleanup: true
     file: "docker-g5k-$GIMME_OS-$GIMME_ARCH"
-
     on:
         tags: true
-        
     api_key:
         secure: AmCrDfWm2XV6tNawIpcq/eLdHl83ns5foq3+CBE/RjF2ncqhLProvbZf8LeYivtA+Q/fbWV6LK3I2cQKFWj3h47llwL0goeq2GW3VpQBx9vEnDrZbR0T3XydWAD7BgHVKXDs6ppk3c1F+QtVWuKxyc/4whN+uRDwckMmZ+ZJQacCf6mutMA1xxQYZFbZ/QCI+hrbRaQNgPuN7LAOoWq9SMpnE5EcMNj2vdEWsS6wcFRmO6ZDweTXt2aLQqrilBVfQfdG58U2PmAQNvYGjN/uJeliIOph4wwhkDR5qMQguex/dPvytps+tEShKYpPJD0lGNhTk/fM0J6Gyw1VxTTbN+jDw3MvUccFMl+yUM2puTRwBTdSBb5wcABjeQIk+C5TS9Hx8woiV+OasK9a/0Ar5DogpDWFrM99VyXoYA9ilUG22JzNlAoIHHpWAIuIrG0637tlV66We4fWWUMbj1Smh0ZJ1AqzuB8f23PkYBf0pDETO77Y1Mrb6WrchKmyK/IhIf0JlBAEBBBEfCAnaa8PeGTSlEIJoBeEZf4dg6daOUtC1azXIL7GNw0wpJ7ah7ziWNZhH1L1F1ZhZCWUHCqwsZkRUtSfaG9C/wZuHZiz7mcfDnUQ8leBXbWJIVQ9+fyEMPeqlq7vNbSSikrV+icTbLw8k1zCwfy9BJGJShPsT8Q=
