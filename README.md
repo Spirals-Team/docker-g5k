@@ -11,6 +11,11 @@ A tool to create a Docker Swarm cluster for Docker Machine on the Grid5000 testb
 
 You need a Grid5000 account to use this tool. See [this page](https://www.grid5000.fr/mediawiki/index.php/Grid5000:Get_an_account) to create an account.
 
+## VPN
+**You need to be connected to the Grid5000 VPN to create and access your Docker nodes.**  
+**Do not forget to configure your DNS or use OpenVPN DNS auto-configuration.**  
+**Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/mediawiki/index.php/VPN).**
+
 ## Installation
 
 ## Installation from GitHub releases
@@ -39,11 +44,6 @@ export PATH=$PATH:$GOPATH/bin
 ```
 
 ## How to use
-
-### VPN
-You need to be connected to the Grid5000 VPN to create and access your Docker nodes.  
-Do not forget to configure your DNS or use OpenVPN DNS auto-configuration.  
-Please follow the instructions from the [Grid5000 Wiki](https://www.grid5000.fr/mediawiki/index.php/VPN).
 
 ### Command line flags
 Flags marked with `[ ]` can be given multiple times and the values will be added.
