@@ -19,7 +19,7 @@ install:
 script:
     # Only run tests on Linux
     - if [ $BUILD_GOOS == "linux" ] ; then go test -v ./... ; fi
-    - go build -v -o docker-g5k-$GIMME_OS-$GIMME_ARCH
+    - go build -v -ldflags="-X main.AppVersion=$TRAVIS_TAG" -o docker-g5k-$GIMME_OS-$GIMME_ARCH
 
 deploy:
     provider: releases
