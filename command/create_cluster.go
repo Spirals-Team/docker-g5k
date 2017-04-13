@@ -418,7 +418,9 @@ func (c *CreateClusterCommand) provisionNodes(deployedNodes *map[string]node.Nod
 		log.Infof("Swarm bootstrap node is '%s' ('%s')", bootstrapNode.MachineName, bootstrapNode.NodeName)
 
 		// provision the node
-		bootstrapNode.ProvisionNode()
+		if err := bootstrapNode.ProvisionNode(); err != nil {
+			fmt.Printf("Error while provisionning bootstrap node '%s' ('%s'): '%s'\n", bootstrapNode.NodeName, bootstrapNode.MachineName, err)
+		}
 
 		// remove the node from the list
 		delete(*deployedNodes, k)
@@ -432,7 +434,9 @@ func (c *CreateClusterCommand) provisionNodes(deployedNodes *map[string]node.Nod
 		wg.Add(1)
 		go func(n node.Node) {
 			defer wg.Done()
-			n.ProvisionNode()
+			if err := n.ProvisionNode(); err != nil {
+				fmt.Printf("Error while provisionning node '%s' ('%s'): '%s'\n", n.NodeName, n.MachineName, err)
+			}
 		}(n)
 	}
 

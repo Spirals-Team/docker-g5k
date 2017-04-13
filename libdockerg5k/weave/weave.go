@@ -4,8 +4,7 @@ package weave
 Procedure to deploy Weave Net and Discovery:
 
 Net:
-docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /proc:/hostproc -e PROCFS=/hostproc --privileged --net=host weaveworks/weaveexec --local launch-router
-docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /proc:/hostproc -e PROCFS=/hostproc --privileged --net=host weaveworks/weaveexec --local launch-plugin
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /proc:/hostproc -e PROCFS=/hostproc --privileged --net=host weaveworks/weaveexec --local launch-router --plugin
 
 Discovery:
 docker run -d --name weavediscovery --net=host weaveworks/weavediscovery $SWARM_DISCOVERY
@@ -22,14 +21,9 @@ import (
 
 // RunWeaveNet run Weave Net on given host
 func RunWeaveNet(h *host.Host) error {
-	// Launch Weave Net Router
-	if _, err := h.RunSSHCommand("docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /proc:/hostproc -e PROCFS=/hostproc --privileged --net=host weaveworks/weaveexec --local launch-router"); err != nil {
-		return err
-	}
-
-	// Launch Weave Net network plugin
-	if _, err := h.RunSSHCommand("docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /proc:/hostproc -e PROCFS=/hostproc --privileged --net=host weaveworks/weaveexec --local launch-plugin"); err != nil {
-		return err
+	// Run Weave Net router with Docker plugin
+	if _, err := h.RunSSHCommand("docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /proc:/hostproc -e PROCFS=/hostproc --privileged --net=host weaveworks/weaveexec --local launch-router --plugin"); err != nil {
+		return fmt.Errorf("Weave Net run command failed: '%s'", err)
 	}
 
 	return nil
@@ -37,9 +31,9 @@ func RunWeaveNet(h *host.Host) error {
 
 // RunWeaveDiscovery run Weave Discovery on a host using the given Swarm Discovery method
 func RunWeaveDiscovery(h *host.Host, swarmDiscovery string) error {
-	// Launch Weave Discovery
+	// Run Weave Discovery
 	if _, err := h.RunSSHCommand(fmt.Sprintf("docker run -d --name weavediscovery --net=host weaveworks/weavediscovery %s", swarmDiscovery)); err != nil {
-		return err
+		return fmt.Errorf("Weave Discovery run command failed: '%s'", err)
 	}
 
 	return nil
