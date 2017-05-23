@@ -36,6 +36,17 @@ type GlobalConfig struct {
 	WeaveNetworkingEnabled bool
 }
 
+// GenerateSSHKeyPair generate a new global SSH key
+func (c *GlobalConfig) GenerateSSHKeyPair() error {
+	sshKeyPair, err := ssh.NewKeyPair()
+	if err != nil {
+		return err
+	}
+
+	c.SSHKeyPair = sshKeyPair
+	return nil
+}
+
 // Cluster represents the cluster
 type Cluster struct {
 	Config *GlobalConfig
@@ -48,17 +59,6 @@ func NewCluster(config *GlobalConfig) *Cluster {
 		Config: config,
 		Nodes:  make(map[string]*Node),
 	}
-}
-
-// GenerateSSHKeyPair generate a new SSH key pair for the nodes in the cluster
-func (c *Cluster) GenerateSSHKeyPair() error {
-	sshKeyPair, err := ssh.NewKeyPair()
-	if err != nil {
-		return err
-	}
-
-	c.Config.SSHKeyPair = sshKeyPair
-	return nil
 }
 
 // CreateNodes creates nodes for a site
