@@ -148,10 +148,7 @@ var (
 
 // CreateClusterCommand contain global parameters for the command "create-cluster"
 type CreateClusterCommand struct {
-	cli              *cli.Context
-	cluster          *cluster.Cluster
-	nodesReservation map[string]int
-	swarmMasterNodes map[string]bool
+	cli *cli.Context
 }
 
 // parseReserveNodesFlag parse the nodes reservation flag (site):(number of nodes)
@@ -175,7 +172,7 @@ func (c *CreateClusterCommand) parseReserveNodesFlag(flag []string) (map[string]
 			}
 
 			// store nodes to reserve for site
-			c.nodesReservation[v["site"]] = nb
+			nodesReservation[v["site"]] = nb
 		}
 	}
 
@@ -262,11 +259,6 @@ func (c *CreateClusterCommand) checkCliParameters() error {
 		return fmt.Errorf("You must provide a site and the number of nodes to reserve on it")
 	}
 
-	// parse nodes reservation
-	if _, err := c.parseReserveNodesFlag(c.cli.StringSlice("g5k-reserve-nodes")); err != nil {
-		return err
-	}
-
 	// check walltime
 	if c.cli.String("g5k-image") == "" {
 		return fmt.Errorf("You must provide an image to deploy on the nodes")
@@ -277,14 +269,11 @@ func (c *CreateClusterCommand) checkCliParameters() error {
 		return fmt.Errorf("You must provide a walltime")
 	}
 
-	// parse engine opt
-	if _, err := c.parseEngineOptFlag(c.cli.StringSlice("engine-opt")); err != nil {
-		return err
-	}
-
-	// parse engine label
-	if _, err := c.parseEngineLabelFlag(c.cli.StringSlice("engine-label")); err != nil {
-		return err
+	// check if a Swarm master is defined (only if Swarm is enabled)
+	if c.cli.Bool("swarm-standalone-enable") || c.cli.Bool("swarm-mode-enable") {
+		if len(c.cli.StringSlice("swarm-master")) == 0 {
+			return fmt.Errorf("You need to select your Swarm master node(s)")
+		}
 	}
 
 	// check Swarm Standalone parameters
@@ -313,24 +302,17 @@ func (c *CreateClusterCommand) checkCliParameters() error {
 		}
 	}
 
-	// parse Swarm master flag only if Swarm is enabled
-	if c.cli.Bool("swarm-standalone-enable") || c.cli.Bool("swarm-mode-enable") {
-		// check if a Swarm master is defined
-		if len(c.cli.StringSlice("swarm-master")) == 0 {
-			return fmt.Errorf("You need to select a node to be Swarm master")
-		}
-
-		// parse Swarm master flag
-		if _, err := c.parseSwarmMasterFlag(c.cli.StringSlice("swarm-master")); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
-// initCluster initialize a new cluster from the cli parameters
-func (c *CreateClusterCommand) initCluster() error {
+// generateClusterConfig generate a cluster configuration from cli parameters
+func (c *CreateClusterCommand) configureCluster() (*cluster.GlobalConfig, error) {
+	// parse Swarm master flag
+	swarmMaster, err := c.parseSwarmMasterFlag(c.cli.StringSlice("swarm-master"))
+	if err != nil {
+		return nil, err
+	}
+
 	// create nodes global configuration
 	clusterConfig := &cluster.GlobalConfig{
 		LibMachineClient:       libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir()),
@@ -339,7 +321,7 @@ func (c *CreateClusterCommand) initCluster() error {
 		G5kImage:               c.cli.String("g5k-image"),
 		G5kWalltime:            c.cli.String("g5k-walltime"),
 		WeaveNetworkingEnabled: c.cli.Bool("weave-networking"),
-		SwarmMasterNode:        c.swarmMasterNodes,
+		SwarmMasterNode:        swarmMaster,
 	}
 
 	// Swarm Standalone config
@@ -359,15 +341,12 @@ func (c *CreateClusterCommand) initCluster() error {
 		clusterConfig.SwarmModeGlobalConfig = &swarm.SwarmModeGlobalConfig{}
 	}
 
-	// create new cluster using generated config
-	c.cluster = cluster.NewCluster(clusterConfig)
-
 	// generate SSH key pair
-	if err := c.cluster.GenerateSSHKeyPair(); err != nil {
-		return fmt.Errorf("Error while generating cluster SSH key pair: '%s'", err)
+	if err := clusterConfig.GenerateSSHKeyPair(); err != nil {
+		return nil, fmt.Errorf("Error while generating cluster SSH key pair: '%s'", err)
 	}
 
-	return nil
+	return clusterConfig, nil
 }
 
 // CreateCluster create nodes in docker-machine
@@ -375,37 +354,77 @@ func (c *CreateClusterCommand) createCluster() error {
 	// create Grid5000 API client
 	g5kAPI := g5k.Init(c.cli.String("g5k-username"), c.cli.String("g5k-password"))
 
-	// generate node global configuration
-	if err := c.initCluster(); err != nil {
+	// generate cluster configuration from cli flags
+	clusterConfig, err := c.configureCluster()
+	if err != nil {
 		return err
 	}
-	defer c.cluster.Config.LibMachineClient.Close()
 
-	// stores the deployed nodes configuration by sites
-	reservationErrChan := make(chan error)
+	// create new cluster
+	cluster := cluster.NewCluster(clusterConfig)
+	defer cluster.Config.LibMachineClient.Close()
+
+	// parse nodes reservation
+	nodesReservation, err := c.parseReserveNodesFlag(c.cli.StringSlice("g5k-reserve-nodes"))
+	if err != nil {
+		return err
+	}
+
+	// create nodes in the cluster
+	cluster.CreateNodes(nodesReservation)
+
+	// parse engine opt
+	engineOpts, err := c.parseEngineOptFlag(c.cli.StringSlice("engine-opt"))
+	if err != nil {
+		return err
+	}
+
+	// apply engine options to nodes
+	for node, opts := range engineOpts {
+		if _, ok := cluster.Nodes[node]; !ok {
+			return fmt.Errorf("The node '%s' does not exist", node)
+		}
+
+		cluster.Nodes[node].EngineOpt = append(cluster.Nodes[node].EngineOpt, opts...)
+	}
+
+	// parse engine label
+	engineLabels, err := c.parseEngineLabelFlag(c.cli.StringSlice("engine-label"))
+	if err != nil {
+		return err
+	}
+
+	// apply engine labels to nodes
+	for node, labels := range engineLabels {
+		if _, ok := cluster.Nodes[node]; !ok {
+			return fmt.Errorf("The node '%s' does not exist", node)
+		}
+
+		cluster.Nodes[node].EngineLabel = append(cluster.Nodes[node].EngineLabel, labels...)
+	}
 
 	// process nodes reservations by sites
-	for site, nb := range c.nodesReservation {
+	for site, nb := range nodesReservation {
 		log.Infof("Reserving %d nodes on '%s' site...", nb, site)
 
 		// reserve nodes
 		jobID, err := g5kAPI.ReserveNodes(site, nb, c.cli.String("g5k-resource-properties"), c.cli.String("g5k-walltime"))
 		if err != nil {
-			reservationErrChan <- fmt.Errorf("Job reservation for site '%s' failed: '%s'", site, err)
+			return fmt.Errorf("Job reservation for site '%s' failed: '%s'", site, err)
 		}
 
 		// deploy nodes
-		deployedNodes, err := g5kAPI.DeployNodes(site, string(c.cluster.Config.SSHKeyPair.PublicKey), jobID, c.cli.String("g5k-image"))
+		deployedNodes, err := g5kAPI.DeployNodes(site, string(cluster.Config.SSHKeyPair.PublicKey), jobID, c.cli.String("g5k-image"))
 		if err != nil {
-			reservationErrChan <- fmt.Errorf("Nodes deployment for site '%s' failed: '%s'", site, err)
+			return fmt.Errorf("Nodes deployment for site '%s' failed: '%s'", site, err)
 		}
 
 		// allocate deployed nodes to machines
-		c.cluster.AllocateDeployedNodesToMachines(site, jobID, deployedNodes)
+		cluster.AllocateDeployedNodesToMachines(site, jobID, deployedNodes)
 	}
 
 	// provision deployed nodes
-	if err := c.cluster.ProvisionNodes(); err != nil {
+	if err := cluster.ProvisionNodes(); err != nil {
 		return err
 	}
 

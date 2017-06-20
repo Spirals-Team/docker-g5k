@@ -61,30 +61,35 @@ func NewCluster(config *GlobalConfig) *Cluster {
 	}
 }
 
-// CreateNodes creates nodes for a site
-func (c *Cluster) CreateNodes(site string, count int) {
-	for i := 0; i < count; i++ {
-		// generate machine name : {site}-{id}
-		machineName := fmt.Sprintf("%s-%d", site, i)
+// CreateNodes creates nodes from reservations
+func (c *Cluster) CreateNodes(reservations map[string]int) {
+	for site, count := range reservations {
+		for i := 0; i < count; i++ {
+			// generate machine name : {site}-{id}
+			machineName := fmt.Sprintf("%s-%d", site, i)
 
-		// store node configuration
-		c.Nodes[machineName] = &Node{
-			clusterConfig: c.Config,
-			MachineName:   machineName,
-			G5kSite:       site,
+			// store node configuration
+			c.Nodes[machineName] = &Node{
+				clusterConfig: c.Config,
+				MachineName:   machineName,
+				G5kSite:       site,
+			}
 		}
 	}
 }
 
 // AllocateDeployedNodesToMachines allocate the deployed nodes to the Docker Machines
 func (c *Cluster) AllocateDeployedNodesToMachines(site string, jobID int, deployedNodes []string) {
+	c.Config.HostsLookupTable = make(map[string]string)
+
 	// create configuration for deployed nodes
 	for i, n := range deployedNodes {
 		// generate machine name : {site}-{id}
 		machineName := fmt.Sprintf("%s-%d", site, i)
 
-		// set node name (hostname)
+		// set driver parameters
 		c.Nodes[machineName].NodeName = n
+		c.Nodes[machineName].G5kJobID = jobID
 
 		// lookup IP address of the node for static lookup table
 		ip, err := net.LookupIP(n)
