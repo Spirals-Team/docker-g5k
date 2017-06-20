@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 
+	"github.com/Spirals-Team/docker-g5k/libdockerg5k/hostsmapping"
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/weave"
 	g5kdriver "github.com/Spirals-Team/docker-machine-driver-g5k/driver"
 	"github.com/docker/machine/commands/mcndirs"
@@ -91,6 +92,11 @@ func (n *Node) Provision() error {
 
 	// provision the new machine
 	if err := n.clusterConfig.LibMachineClient.Create(h); err != nil {
+		return err
+	}
+
+	// add all cluster nodes to the static lookup table of the host
+	if err := hostsmapping.AddClusterHostsMapping(h, n.clusterConfig.HostsLookupTable); err != nil {
 		return err
 	}
 
