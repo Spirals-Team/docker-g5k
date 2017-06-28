@@ -93,7 +93,7 @@ func (c *Cluster) AllocateDeployedNodesToMachines(site string, jobID int, deploy
 
 		// lookup IP address of the node for static lookup table
 		ip, err := net.LookupIP(n)
-		if err != nil {
+		if err != nil || len(ip) < 1 {
 			log.Errorf("Unable to lookup IP address for '%s' node: '%s'\n", n, err)
 			continue
 		}
