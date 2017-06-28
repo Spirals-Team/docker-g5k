@@ -307,12 +307,6 @@ func (c *CreateClusterCommand) checkCliParameters() error {
 
 // generateClusterConfig generate a cluster configuration from cli parameters
 func (c *CreateClusterCommand) configureCluster() (*cluster.GlobalConfig, error) {
-	// parse Swarm master flag
-	swarmMaster, err := c.parseSwarmMasterFlag(c.cli.StringSlice("swarm-master"))
-	if err != nil {
-		return nil, err
-	}
-
 	// create nodes global configuration
 	clusterConfig := &cluster.GlobalConfig{
 		LibMachineClient:       libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir()),
@@ -321,7 +315,7 @@ func (c *CreateClusterCommand) configureCluster() (*cluster.GlobalConfig, error)
 		G5kImage:               c.cli.String("g5k-image"),
 		G5kWalltime:            c.cli.String("g5k-walltime"),
 		WeaveNetworkingEnabled: c.cli.Bool("weave-networking"),
-		SwarmMasterNode:        swarmMaster,
+		SwarmMasterNode:        make(map[string]bool),
 	}
 
 	// Swarm Standalone config
@@ -401,6 +395,21 @@ func (c *CreateClusterCommand) createCluster() error {
 		}
 
 		cluster.Nodes[node].EngineLabel = append(cluster.Nodes[node].EngineLabel, labels...)
+	}
+
+	// parse Swarm master flag
+	swarmMaster, err := c.parseSwarmMasterFlag(c.cli.StringSlice("swarm-master"))
+	if err != nil {
+		return err
+	}
+
+	// store swarm master nodes
+	for node := range swarmMaster {
+		if _, ok := cluster.Nodes[node]; !ok {
+			return fmt.Errorf("The node '%s' does not exist", node)
+		}
+
+		cluster.Config.SwarmMasterNode[node] = true
 	}
 
 	// process nodes reservations by sites
