@@ -79,7 +79,7 @@ func (c *Cluster) CreateNodes(reservations map[string]int) {
 }
 
 // AllocateDeployedNodesToMachines allocate the deployed nodes to the Docker Machines
-func (c *Cluster) AllocateDeployedNodesToMachines(site string, jobID int, deployedNodes []string) {
+func (c *Cluster) AllocateDeployedNodesToMachines(site string, jobID int, deployedNodes []string) error {
 	c.Config.HostsLookupTable = make(map[string]string)
 
 	// create configuration for deployed nodes
@@ -94,13 +94,14 @@ func (c *Cluster) AllocateDeployedNodesToMachines(site string, jobID int, deploy
 		// lookup IP address of the node for static lookup table
 		ip, err := net.LookupIP(n)
 		if err != nil || len(ip) < 1 {
-			log.Errorf("Unable to lookup IP address for '%s' node: '%s'\n", n, err)
-			continue
+			return fmt.Errorf("Unable to lookup IP address for '%s' node: '%s'\n", n, err)
 		}
 
 		// set IP address of the machine in the static lookup table
 		c.Config.HostsLookupTable[machineName] = ip[0].String()
 	}
+
+	return nil
 }
 
 // ProvisionNodes provision the nodes in the cluster (in parallel)

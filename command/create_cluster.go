@@ -429,7 +429,9 @@ func (c *CreateClusterCommand) createCluster() error {
 		}
 
 		// allocate deployed nodes to machines
-		cluster.AllocateDeployedNodesToMachines(site, jobID, deployedNodes)
+		if err := cluster.AllocateDeployedNodesToMachines(site, jobID, deployedNodes); err != nil {
+			return fmt.Errorf("Unable to allocate deployed nodes to machines for site '%s' : '%s'", site, err)
+		}
 	}
 
 	// provision deployed nodes
