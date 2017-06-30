@@ -8,14 +8,16 @@ import (
 
 func TestGenerateClusterStorageURLSingleMaster(t *testing.T) {
 	masters := []string{"lille-0"}
-	url := GenerateClusterStorageURL(masters)
-	assert.Equal(t, "zk://lille-0", url)
+	hostsLookup := map[string]string{"lille-0": "10.0.0.0"}
+	url := GenerateClusterStorageURL(masters, hostsLookup)
+	assert.Equal(t, "zk://10.0.0.0", url)
 }
 
 func TestGenerateClusterStorageURLMultiMaster(t *testing.T) {
 	masters := []string{"lille-0", "sophia-1", "lyon-2"}
-	url := GenerateClusterStorageURL(masters)
-	assert.Equal(t, "zk://lille-0,sophia-1,lyon-2", url)
+	hostsLookup := map[string]string{"lille-0": "10.0.0.0", "sophia-1": "10.1.1.1", "lyon-2": "10.2.2.2"}
+	url := GenerateClusterStorageURL(masters, hostsLookup)
+	assert.Equal(t, "zk://10.0.0.0,10.1.1.1,10.2.2.2", url)
 }
 
 func TestGenerateServerListSingleMaster(t *testing.T) {

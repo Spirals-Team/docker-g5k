@@ -8,8 +8,14 @@ import (
 )
 
 // GenerateClusterStorageURL returns a string used for Docker Engine/Swarm cluster-store parameter (format=zk://node1,node2,nodeN...)
-func GenerateClusterStorageURL(zookeeperMasterNodes []string) string {
-	return fmt.Sprintf("zk://%s", strings.Join(zookeeperMasterNodes, ","))
+func GenerateClusterStorageURL(zookeeperMasterNodes []string, hostsLookupTable map[string]string) string {
+	// get the master nodes IP address from the hosts lookup table
+	nodesIP := []string{}
+	for _, n := range zookeeperMasterNodes {
+		nodesIP = append(nodesIP, hostsLookupTable[n])
+	}
+
+	return fmt.Sprintf("zk://%s", strings.Join(nodesIP, ","))
 }
 
 // generateZookeeperServerList returns the list of zookeeper server for ZOO_SERVERS environment variable
