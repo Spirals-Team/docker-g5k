@@ -107,7 +107,7 @@ var (
 			cli.StringFlag{
 				EnvVar: "SWARM_STANDALONE_DISCOVERY",
 				Name:   "swarm-standalone-discovery",
-				Usage:  "Discovery service to use with Swarm",
+				Usage:  "Discovery service to use with Swarm (Default: Start a Zookeeper service on all master nodes)",
 				Value:  "",
 			},
 
@@ -315,7 +315,7 @@ func (c *CreateClusterCommand) configureCluster() (*cluster.GlobalConfig, error)
 		G5kImage:               c.cli.String("g5k-image"),
 		G5kWalltime:            c.cli.String("g5k-walltime"),
 		WeaveNetworkingEnabled: c.cli.Bool("weave-networking"),
-		SwarmMasterNode:        make(map[string]bool),
+		HostsLookupTable:       make(map[string]string),
 	}
 
 	// Swarm Standalone config
@@ -409,7 +409,7 @@ func (c *CreateClusterCommand) createCluster() error {
 			return fmt.Errorf("The node '%s' does not exist", node)
 		}
 
-		cluster.Config.SwarmMasterNode[node] = true
+		cluster.Config.SwarmMasterNode = append(cluster.Config.SwarmMasterNode, node)
 	}
 
 	// process nodes reservations by sites

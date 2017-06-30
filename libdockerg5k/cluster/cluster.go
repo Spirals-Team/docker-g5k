@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/swarm"
+	"github.com/Spirals-Team/docker-g5k/libdockerg5k/zookeeper"
 	"github.com/docker/machine/libmachine"
 	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/ssh"
@@ -30,10 +31,13 @@ type GlobalConfig struct {
 	// Swarm configuration
 	SwarmStandaloneGlobalConfig *swarm.SwarmStandaloneGlobalConfig
 	SwarmModeGlobalConfig       *swarm.SwarmModeGlobalConfig
-	SwarmMasterNode             map[string]bool
+	SwarmMasterNode             []string
 
 	// Weave networking
 	WeaveNetworkingEnabled bool
+
+	// Cluster storage
+	UseZookeeperClusterStorage bool
 }
 
 // GenerateSSHKeyPair generate a new global SSH key
@@ -80,8 +84,6 @@ func (c *Cluster) CreateNodes(reservations map[string]int) {
 
 // AllocateDeployedNodesToMachines allocate the deployed nodes to the Docker Machines
 func (c *Cluster) AllocateDeployedNodesToMachines(site string, jobID int, deployedNodes []string) error {
-	c.Config.HostsLookupTable = make(map[string]string)
-
 	// create configuration for deployed nodes
 	for i, n := range deployedNodes {
 		// generate machine name : {site}-{id}
@@ -94,7 +96,7 @@ func (c *Cluster) AllocateDeployedNodesToMachines(site string, jobID int, deploy
 		// lookup IP address of the node for static lookup table
 		ip, err := net.LookupIP(n)
 		if err != nil || len(ip) < 1 {
-			return fmt.Errorf("Unable to lookup IP address for '%s' node: '%s'\n", n, err)
+			return fmt.Errorf("Unable to lookup IP address for '%s' node: '%s'", n, err)
 		}
 
 		// set IP address of the machine in the static lookup table
@@ -106,10 +108,19 @@ func (c *Cluster) AllocateDeployedNodesToMachines(site string, jobID int, deploy
 
 // ProvisionNodes provision the nodes in the cluster (in parallel)
 func (c *Cluster) ProvisionNodes() error {
-	log.Info("Starting nodes provisionning...")
+	// if Swarm standalone is enabled, and no discovery method provided, deploy a Zookeeper instance for the cluster
+	if (c.Config.SwarmStandaloneGlobalConfig != nil) && (c.Config.SwarmStandaloneGlobalConfig.Discovery == "") {
+		log.Info("No Swarm cluster storage defined, Zookeeper will be deployed on each master nodes")
+
+		// enable Zookeeper
+		c.Config.UseZookeeperClusterStorage = true
+
+		// set discovery string with zookeeper url
+		c.Config.SwarmStandaloneGlobalConfig.Discovery = zookeeper.GenerateClusterStorageURL(c.Config.SwarmMasterNode, c.Config.HostsLookupTable)
+	}
 
 	// provision Swarm master/manager nodes (sequential)
-	for k := range c.Config.SwarmMasterNode {
+	for _, k := range c.Config.SwarmMasterNode {
 		log.Infof("Provisionning Swarm master/manager node '%s' ('%s')...", c.Nodes[k].NodeName, c.Nodes[k].MachineName)
 
 		// error in Swarm master provisionning is fatal
@@ -118,16 +129,21 @@ func (c *Cluster) ProvisionNodes() error {
 		}
 	}
 
+	log.Info("Provisionning nodes, it will take a few minutes...")
+
 	// provision all deployed nodes (parallel)
 	var wg sync.WaitGroup
 	for _, n := range c.Nodes {
-		wg.Add(1)
-		go func(n *Node) {
-			defer wg.Done()
-			if err := n.Provision(); err != nil {
-				log.Errorf("Error while provisionning node '%s' ('%s'): '%s'\n", n.NodeName, n.MachineName, err)
-			}
-		}(n)
+		// skip already provisionned Swarm master/manager
+		if !n.isSwarmMaster() {
+			wg.Add(1)
+			go func(n *Node) {
+				defer wg.Done()
+				if err := n.Provision(); err != nil {
+					log.Errorf("Error while provisionning node '%s' ('%s'): '%s'\n", n.NodeName, n.MachineName, err)
+				}
+			}(n)
+		}
 	}
 
 	// wait nodes provisionning to finish

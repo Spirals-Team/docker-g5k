@@ -2,10 +2,12 @@ package cluster
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/hostsmapping"
 	"github.com/Spirals-Team/docker-g5k/libdockerg5k/weave"
+	"github.com/Spirals-Team/docker-g5k/libdockerg5k/zookeeper"
 	g5kdriver "github.com/Spirals-Team/docker-machine-driver-g5k/driver"
 	"github.com/docker/machine/commands/mcndirs"
 	"github.com/docker/machine/libmachine/auth"
@@ -40,6 +42,17 @@ func (n *Node) createHostAuthOptions() *auth.Options {
 		StorePath:        filepath.Join(mcndirs.GetMachineDir(), n.MachineName),
 		ServerCertSANs:   nil,
 	}
+}
+
+// isSwarmMaster returns true if this node is a Swarm master/manager, false otherwise
+func (n *Node) isSwarmMaster() bool {
+	for _, v := range n.clusterConfig.SwarmMasterNode {
+		if v == n.MachineName {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Provision will install Docker Engine/Swarm and perform some configurations on the node
@@ -81,13 +94,20 @@ func (n *Node) Provision() error {
 	// set Docker Engine parameters
 	h.HostOptions.EngineOptions.ArbitraryFlags = n.EngineOpt
 	h.HostOptions.EngineOptions.Labels = n.EngineLabel
+	h.HostOptions.EngineOptions.InstallURL = "https://releases.rancher.com/install-docker/17.03.sh"
 
 	// mandatory, or driver will use bad paths for certificates
 	h.HostOptions.AuthOptions = n.createHostAuthOptions()
 
 	// set swarm options if Swarm standalone is enabled
 	if n.clusterConfig.SwarmStandaloneGlobalConfig != nil {
-		h.HostOptions.SwarmOptions = n.clusterConfig.SwarmStandaloneGlobalConfig.CreateNodeConfig(n.NodeName, n.clusterConfig.SwarmMasterNode[n.MachineName], true)
+		h.HostOptions.SwarmOptions = n.clusterConfig.SwarmStandaloneGlobalConfig.CreateNodeConfig(n.NodeName, n.isSwarmMaster(), true)
+	}
+
+	// Engine cluster storage
+	if n.clusterConfig.UseZookeeperClusterStorage {
+		// set 'cluster-advertise' & 'cluster-store' Docker Engine options
+		h.HostOptions.EngineOptions.ArbitraryFlags = append(h.HostOptions.EngineOptions.ArbitraryFlags, "cluster-advertise=eth0:2379", fmt.Sprintf("cluster-store=%s", n.clusterConfig.SwarmStandaloneGlobalConfig.Discovery))
 	}
 
 	// provision the new machine
@@ -100,16 +120,24 @@ func (n *Node) Provision() error {
 		return err
 	}
 
-	// install and run Weave Net / Discovery if Weave networking mode and Swarm standalone are enabled
-	if n.clusterConfig.WeaveNetworkingEnabled && (n.clusterConfig.SwarmStandaloneGlobalConfig != nil) {
-		// run Weave Net
-		if err := weave.RunWeaveNet(h); err != nil {
-			return err
+	// Swarm standalone (post-creation)
+	if n.clusterConfig.SwarmStandaloneGlobalConfig != nil {
+		// run Zookeeper cluster storage on Swarm master nodes only
+		if n.isSwarmMaster() && n.clusterConfig.UseZookeeperClusterStorage {
+			zookeeper.StartClusterStorage(h, n.clusterConfig.SwarmMasterNode)
 		}
 
-		// run Weave Discovery
-		if err := weave.RunWeaveDiscovery(h, n.clusterConfig.SwarmStandaloneGlobalConfig.Discovery); err != nil {
-			return err
+		// run Weave Net / Discovery if enabled
+		if n.clusterConfig.WeaveNetworkingEnabled {
+			// run Weave Net
+			if err := weave.RunWeaveNet(h); err != nil {
+				return err
+			}
+
+			// run Weave Discovery
+			if err := weave.RunWeaveDiscovery(h, n.clusterConfig.SwarmStandaloneGlobalConfig.Discovery); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -123,7 +151,7 @@ func (n *Node) Provision() error {
 			}
 		} else {
 			// join the Swarm mode cluster
-			if err := n.clusterConfig.SwarmModeGlobalConfig.JoinSwarmModeCluster(h, n.clusterConfig.SwarmMasterNode[n.MachineName]); err != nil {
+			if err := n.clusterConfig.SwarmModeGlobalConfig.JoinSwarmModeCluster(h, n.isSwarmMaster()); err != nil {
 				return err
 			}
 		}
