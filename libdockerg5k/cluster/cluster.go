@@ -18,6 +18,9 @@ type GlobalConfig struct {
 	// Docker Machine
 	LibMachineClient *libmachine.Client
 
+	// Docker Engine
+	EngineInstallURL string
+
 	// Grid'5000 driver config (needed or some Docker Machine operations will not work afterwards)
 	G5kUsername string
 	G5kPassword string

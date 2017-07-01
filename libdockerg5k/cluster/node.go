@@ -94,7 +94,7 @@ func (n *Node) Provision() error {
 	// set Docker Engine parameters
 	h.HostOptions.EngineOptions.ArbitraryFlags = n.EngineOpt
 	h.HostOptions.EngineOptions.Labels = n.EngineLabel
-	h.HostOptions.EngineOptions.InstallURL = "https://releases.rancher.com/install-docker/17.03.sh"
+	h.HostOptions.EngineOptions.InstallURL = n.clusterConfig.EngineInstallURL
 
 	// mandatory, or driver will use bad paths for certificates
 	h.HostOptions.AuthOptions = n.createHostAuthOptions()

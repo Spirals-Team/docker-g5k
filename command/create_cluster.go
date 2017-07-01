@@ -74,6 +74,13 @@ var (
 				Value:  "",
 			},
 
+			cli.StringFlag{
+				EnvVar: "ENGINE_INSTALL_URL",
+				Name:   "engine-install-url",
+				Usage:  "Custom URL to use for engine installation",
+				Value:  "https://get.docker.com",
+			},
+
 			cli.StringSliceFlag{
 				EnvVar: "ENGINE_OPT",
 				Name:   "engine-opt",
@@ -269,6 +276,11 @@ func (c *CreateClusterCommand) checkCliParameters() error {
 		return fmt.Errorf("You must provide a walltime")
 	}
 
+	// check Docker Engine install url
+	if c.cli.String("engine-install-url") == "" {
+		return fmt.Errorf("You must provide a Docker Engine install URL")
+	}
+
 	// check if a Swarm master is defined (only if Swarm is enabled)
 	if c.cli.Bool("swarm-standalone-enable") || c.cli.Bool("swarm-mode-enable") {
 		if len(c.cli.StringSlice("swarm-master")) == 0 {
@@ -310,6 +322,7 @@ func (c *CreateClusterCommand) configureCluster() (*cluster.GlobalConfig, error)
 	// create nodes global configuration
 	clusterConfig := &cluster.GlobalConfig{
 		LibMachineClient:       libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir()),
+		EngineInstallURL:       c.cli.String("engine-install-url"),
 		G5kUsername:            c.cli.String("g5k-username"),
 		G5kPassword:            c.cli.String("g5k-password"),
 		G5kImage:               c.cli.String("g5k-image"),
