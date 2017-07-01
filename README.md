@@ -60,6 +60,7 @@ Please refer to the flags format in "Flags usage" section of the command.
 * `--g5k-walltime` : Timelife of the nodes (format: "hh:mm:ss")
 * `--g5k-image` : Name of the image to deploy on the nodes
 * `--g5k-resource-properties` :  Resource selection with OAR properties (SQL format)
+* `--engine-install-url` : Custom URL to use for Docker engine installation
 * `--engine-opt` : Specify flags to include on the selected node(s) engine
 * `--engine-label` : Specify labels for the selected node(s) engine
 * `--swarm-master` : Select node(s) to be promoted to Swarm Master
@@ -73,30 +74,31 @@ Please refer to the flags format in "Flags usage" section of the command.
 * `--weave-networking` : Use Weave for networking (Only with Swarm standalone)
 
 ##### Flags usage
-|             Option             |          Environment         |     Default value     | { } | [ ] |
-|--------------------------------|------------------------------|-----------------------|-----|-----|
-| `--g5k-username`               | `G5K_USERNAME`               |                       | No  | No  |
-| `--g5k-password`               | `G5K_PASSWORD`               |                       | No  | No  |
-| `--g5k-reserve-nodes`          | `G5K_RESERVE_NODES`          |                       | Yes | Yes |
-| `--g5k-walltime`               | `G5K_WALLTIME`               | "1:00:00"             | No  | No  |
-| `--g5k-image`                  | `G5K_IMAGE`                  | "jessie-x64-min"      | No  | No  |
-| `--g5k-resource-properties`    | `G5K_RESOURCE_PROPERTIES`    |                       | No  | No  |
-| `--engine-opt`                 | `ENGINE_OPT`                 |                       | Yes | Yes |
-| `--engine-label`               | `ENGINE_LABEL`               |                       | Yes | Yes |
-| `--swarm-master`               | `SWARM_MASTER`               |                       | Yes | Yes |
-| `--swarm-mode-enable`          | `SWARM_MODE_ENABME`          |                       | No  | No  |
-| `--swarm-standalone-enable`    | `SWARM_STANDALONE_ENABLE`    |                       | No  | No  |
-| `--swarm-standalone-discovery` | `SWARM_STANDALONE_DISCOVERY` | New token             | No  | No  |
-| `--swarm-standalone-image`     | `SWARM_STANDALONE_IMAGE`     | "swarm:latest"        | No  | No  |
-| `--swarm-standalone-strategy`  | `SWARM_STANDALONE_STRATEGY`  | "spread"              | No  | No  |
-| `--swarm-standalone-opt`       | `SWARM_STANDALONE_OPT`       |                       | No  | Yes |
-| `--swarm-standalone-join-opt`  | `SWARM_STANDALONE_JOIN_OPT`  |                       | No  | Yes |
-| `--weave-networking`           | `WEAVE_NETWORKING`           |                       | No  | No  |
+|             Option             |          Environment         |       Default value       | { } | [ ] |
+|--------------------------------|------------------------------|---------------------------|-----|-----|
+| `--g5k-username`               | `G5K_USERNAME`               |                           | No  | No  |
+| `--g5k-password`               | `G5K_PASSWORD`               |                           | No  | No  |
+| `--g5k-reserve-nodes`          | `G5K_RESERVE_NODES`          |                           | Yes | Yes |
+| `--g5k-walltime`               | `G5K_WALLTIME`               | "1:00:00"                 | No  | No  |
+| `--g5k-image`                  | `G5K_IMAGE`                  | "jessie-x64-min"          | No  | No  |
+| `--g5k-resource-properties`    | `G5K_RESOURCE_PROPERTIES`    |                           | No  | No  |
+| `--engine-install-url`         | `ENGINE_INSTALL_URL`         | "https://get.docker.com"  | No  | No  |
+| `--engine-opt`                 | `ENGINE_OPT`                 |                           | Yes | Yes |
+| `--engine-label`               | `ENGINE_LABEL`               |                           | Yes | Yes |
+| `--swarm-master`               | `SWARM_MASTER`               |                           | Yes | Yes |
+| `--swarm-mode-enable`          | `SWARM_MODE_ENABLE`          |                           | No  | No  |
+| `--swarm-standalone-enable`    | `SWARM_STANDALONE_ENABLE`    |                           | No  | No  |
+| `--swarm-standalone-discovery` | `SWARM_STANDALONE_DISCOVERY` | Deploy a local ZooKeeper  | No  | No  |
+| `--swarm-standalone-image`     | `SWARM_STANDALONE_IMAGE`     | "swarm:latest"            | No  | No  |
+| `--swarm-standalone-strategy`  | `SWARM_STANDALONE_STRATEGY`  | "spread"                  | No  | No  |
+| `--swarm-standalone-opt`       | `SWARM_STANDALONE_OPT`       |                           | No  | Yes |
+| `--swarm-standalone-join-opt`  | `SWARM_STANDALONE_JOIN_OPT`  |                           | No  | Yes |
+| `--weave-networking`           | `WEAVE_NETWORKING`           |                           | No  | No  |
 
 Flag `--g5k-reserve-nodes` format is `site:numberOfNodes` and brace expansion are supported.  
 For example, `lille-16`, `{lille,nantes}-16`.
 
-Engine flags `--engine-*` format is `node-name:key=val` and brace expansion are supported.  
+Engine flags `--engine-opt` and `--engine-label` format is `node-name:key=val` and brace expansion are supported.  
 For example, `lille-0:mykey=myval`, `lille-{0..5}:mykey=myval`, `lille-{0,2,4}:mykey=myval`.  
 
 For `--engine-opt` flag, please refer to [Docker documentation](https://docs.docker.com/engine/reference/commandline/dockerd/) for supported parameters.  
