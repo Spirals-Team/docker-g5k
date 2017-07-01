@@ -73,6 +73,7 @@ func (n *Node) Provision() error {
 	driver.G5kJobID = n.G5kJobID
 	driver.G5kHostToProvision = n.NodeName
 	driver.SSHKeyPair = n.clusterConfig.SSHKeyPair
+	driver.G5kSkipVpnChecks = true
 
 	// set base driver parameters
 	driver.BaseDriver.MachineName = n.MachineName
