@@ -1,8 +1,11 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
+
+	"github.com/Spirals-Team/docker-machine-driver-g5k/driver"
 )
 
 // ParseCliFlag extract informations (using regex) from cli flags and returns a map (named capturing groups are required)
@@ -33,4 +36,15 @@ func ParseCliFlag(regex string, str string) (map[string]string, error) {
 	}
 
 	return r, nil
+}
+
+// GetG5kDriverConfig takes a raw driver and return a configured Driver structure
+func GetG5kDriverConfig(rawDriver []byte) (*driver.Driver, error) {
+	// unmarshal driver configuration
+	var drv driver.Driver
+	if err := json.Unmarshal(rawDriver, &drv); err != nil {
+		return nil, err
+	}
+
+	return &drv, nil
 }

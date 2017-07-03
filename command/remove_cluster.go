@@ -1,29 +1,29 @@
 package command
 
 import (
-	"encoding/json"
+	"sort"
+
+	"fmt"
 
 	"github.com/codegangsta/cli"
 	"github.com/docker/machine/commands/mcndirs"
 	"github.com/docker/machine/libmachine"
 	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/persist"
-
-	"github.com/Spirals-Team/docker-machine-driver-g5k/driver"
 )
 
 var (
 	// RemoveClusterCliCommand represent the CLI command "remove-cluster" with its flags
 	RemoveClusterCliCommand = cli.Command{
-		Name:   "remove-cluster",
-		Usage:  "Remove a Docker Swarm cluster from the Grid'5000 infrastructure",
-		Action: RunRemoveClusterCommand,
+		Name:    "remove-cluster",
+		Aliases: []string{"rm-cluster", "rm", "r"},
+		Usage:   "Remove a Docker Swarm cluster from the Grid'5000 infrastructure",
+		Action:  RunRemoveClusterCommand,
 		Flags: []cli.Flag{
-			cli.IntFlag{
+			cli.IntSliceFlag{
 				EnvVar: "G5K_JOB_ID",
 				Name:   "g5k-job-id",
-				Usage:  "Only remove nodes related to the provided job ID (By default ALL nodes from ALL jobs will be removed)",
-				Value:  -1,
+				Usage:  "Only remove nodes related to the provided job ID",
 			},
 		},
 	}
@@ -34,15 +34,13 @@ type RemoveClusterCommand struct {
 	cli *cli.Context
 }
 
-// getG5kDriverConfig takes a raw driver and return a configured Driver structure
-func (c *RemoveClusterCommand) getG5kDriverConfig(rawDriver []byte) (*driver.Driver, error) {
-	// unmarshal driver configuration
-	var drv driver.Driver
-	if err := json.Unmarshal(rawDriver, &drv); err != nil {
-		return nil, err
+func (c *RemoveClusterCommand) checkCliParameters() error {
+	// check job ID
+	if len(c.cli.IntSlice("g5k-job-id")) < 1 {
+		return fmt.Errorf("You must provide the job ID of the nodes you want to remove")
 	}
 
-	return &drv, nil
+	return nil
 }
 
 // RemoveCluster remove all nodes
@@ -57,33 +55,33 @@ func (c *RemoveClusterCommand) RemoveCluster() error {
 		return err
 	}
 
+	// sort job ID to kill
+	sort.Ints(c.cli.IntSlice("g5k-job-id"))
+
 	// store already deleted jobs to minimize API calls
-	jobs := make(map[int]bool)
+	deletedJobs := make(map[int]bool)
 
 	// remove hosts from libmachine storage
 	for _, h := range lst {
 		// only remove Grid5000 nodes
 		if h.DriverName == "g5k" {
-			driverConfig, err := c.getG5kDriverConfig(h.RawDriver)
+			driverConfig, err := GetG5kDriverConfig(h.RawDriver)
 			if err != nil {
 				log.Errorf("Cannot remove node '%s' : %s", h.Name, err)
 			}
 
-			// filter the nodes to remove on their job ID
-			if jobID := c.cli.Int("g5k-job-id"); jobID != -1 {
-				// skip nodes with different job ID than provided
-				if driverConfig.G5kJobID != jobID {
-					continue
-				}
+			// skip nodes with Job ID not in the list of jobs to kill
+			if sort.SearchInts(c.cli.IntSlice("g5k-job-id"), driverConfig.G5kJobID) != len(c.cli.IntSlice("g5k-job-id")) {
+				continue
 			}
 
 			// check the job is already in the list of deleted jobs
-			if _, exist := jobs[driverConfig.G5kJobID]; !exist {
+			if _, exist := deletedJobs[driverConfig.G5kJobID]; !exist {
 				// send API call to kill job
 				driverConfig.G5kAPI.KillJob(driverConfig.G5kJobID)
 
 				// add job ID to list of deleted jobs
-				jobs[driverConfig.G5kJobID] = true
+				deletedJobs[driverConfig.G5kJobID] = true
 
 				log.Infof("Job '%v' killed", driverConfig.G5kJobID)
 			}
@@ -101,5 +99,11 @@ func (c *RemoveClusterCommand) RemoveCluster() error {
 // RunRemoveClusterCommand remove a cluster
 func RunRemoveClusterCommand(cli *cli.Context) error {
 	c := RemoveClusterCommand{cli: cli}
+
+	// check CLI parameters
+	if err := c.checkCliParameters(); err != nil {
+		return err
+	}
+
 	return c.RemoveCluster()
 }
