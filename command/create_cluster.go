@@ -29,9 +29,10 @@ const (
 var (
 	// CreateClusterCliCommand represent the CLI command "create-cluster" with its flags
 	CreateClusterCliCommand = cli.Command{
-		Name:   "create-cluster",
-		Usage:  "Create a new Docker Swarm cluster on the Grid'5000 infrastructure",
-		Action: RunCreateClusterCommand,
+		Name:    "create-cluster",
+		Aliases: []string{"create", "c"},
+		Usage:   "Create a new Docker Swarm cluster on the Grid'5000 infrastructure",
+		Action:  RunCreateClusterCommand,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				EnvVar: "G5K_USERNAME",
@@ -469,10 +470,5 @@ func RunCreateClusterCommand(cli *cli.Context) error {
 		return err
 	}
 
-	// create the cluster
-	if err := c.createCluster(); err != nil {
-		return err
-	}
-
-	return nil
+	return c.createCluster()
 }
