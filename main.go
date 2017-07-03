@@ -14,7 +14,7 @@ var (
 	// appFlags stores the application global flags
 	appFlags = []cli.Flag{}
 	// cliCommands stores the application commands
-	cliCommands = []cli.Command{command.CreateClusterCliCommand, command.RemoveClusterCliCommand}
+	cliCommands = []cli.Command{command.CreateClusterCliCommand, command.ListClusterCliCommand, command.RemoveClusterCliCommand}
 )
 
 func main() {
