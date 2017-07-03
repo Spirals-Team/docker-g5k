@@ -22,7 +22,7 @@ func (g *G5K) ReserveNodes(site string, nbNodes int, resourceProperties string, 
 	// submit job request
 	jobID, err := siteAPI.SubmitJob(jobReq)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
 	// wait until job reach 'ready' state
