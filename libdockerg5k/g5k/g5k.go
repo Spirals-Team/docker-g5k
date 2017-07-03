@@ -2,6 +2,7 @@ package g5k
 
 import (
 	"github.com/Spirals-Team/docker-machine-driver-g5k/api"
+	"github.com/Spirals-Team/docker-machine-driver-g5k/driver"
 )
 
 // G5K stores all informations needed to use the Grid5000 API
@@ -18,6 +19,17 @@ func Init(username string, password string) *G5K {
 		password: password,
 		sitesAPI: map[string]*api.Client{},
 	}
+}
+
+// CheckVpnConnection check if the VPN is connected and properly configured (DNS) by trying to connect to the all sites frontend SSH server
+func (g *G5K) CheckVpnConnection(nodesReservation map[string]int) error {
+	for site := range nodesReservation {
+		if err := driver.CheckVpnConnection(site); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // createSiteAPI create a new Grid5000 API client for the given site

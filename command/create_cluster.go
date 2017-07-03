@@ -377,6 +377,11 @@ func (c *CreateClusterCommand) createCluster() error {
 		return err
 	}
 
+	// Check VPN connection for all requested sites
+	if err := g5kAPI.CheckVpnConnection(nodesReservation); err != nil {
+		return err
+	}
+
 	// create nodes in the cluster
 	cluster.CreateNodes(nodesReservation)
 
