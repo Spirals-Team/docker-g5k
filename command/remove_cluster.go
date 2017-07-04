@@ -114,7 +114,9 @@ func (c *RemoveClusterCommand) RemoveCluster() error {
 			}
 
 			// remove node from libmachine storage
-			client.Remove(h.Name)
+			if err := client.Remove(h.Name); err != nil {
+				return fmt.Errorf("Operation aborted. Error while removing '%s' machine: '%s'", h.Name, err)
+			}
 
 			log.Infof("Node '%s' removed", h.Name)
 		}
