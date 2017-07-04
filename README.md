@@ -6,7 +6,7 @@ A tool to create a Docker Swarm cluster for Docker Machine on the Grid5000 testb
 ## Requirements
 * [Docker](https://www.docker.com/products/overview#/install_the_platform)
 * [Docker Machine](https://docs.docker.com/machine/install-machine)
-* [Docker Machine Driver for Grid5000 (v1.4.1+)](https://github.com/Spirals-Team/docker-machine-driver-g5k)
+* [Docker Machine Driver for Grid5000 (v1.6.1+)](https://github.com/Spirals-Team/docker-machine-driver-g5k)
 * [Go tools (Only for installation from sources)](https://golang.org/doc/install)
 
 You need a Grid5000 account to use this tool. See [this page](https://www.grid5000.fr/mediawiki/index.php/Grid5000:Get_an_account) to create an account.
@@ -30,7 +30,7 @@ sudo chmod 755 /usr/local/bin/docker-g5k
 ```
 
 ## Installation from sources
-*This procedure was only tested on Ubuntu 16.04.*
+*This procedure was only tested on Ubuntu 16.04 and Fedora 25*
 
 To use the Go tools, you need to set your [GOPATH](https://golang.org/doc/code.html#GOPATH) variable environment.  
 To get the code and compile the binary, run:
@@ -104,15 +104,25 @@ For example, `lille-0:mykey=myval`, `lille-{0..5}:mykey=myval`, `lille-{0,2,4}:m
 For `--engine-opt` flag, please refer to [Docker documentation](https://docs.docker.com/engine/reference/commandline/dockerd/) for supported parameters.  
 **Test your parameters on a single node before deploying a cluster ! If your flags are incorrect, Docker wont start and you should redeploy the entire cluster !**
 
+#### For `list-cluster` command
+This command does not take any arguments, and will print jobs reservations in the following form:
+
+```bash
+JOB ID    NUMBER OF MACHINE(S)   MACHINE(S) NAME
+111111    3                      luxembourg-0, luxembourg-1, luxembourg-2
+222222    5                      lyon-0, lyon-1, lyon-2, lyon-3, lyon-4
+333333    1                      test-lille
+```
+
 #### For `remove-cluster` command
 
 ##### Flags description
-* `--g5k-job-id` : Only remove nodes related to the provided job ID
+* `--no-confirm` : Disable confirmation before removing machines
 
 ##### Flags usage
 |             Option             |          Environment         |     Default value     | { } | [ ] |
 |--------------------------------|------------------------------|-----------------------|-----|-----|
-| `--g5k-job-id`                 | `G5K_JOB_ID`                 |                       | No  | Yes |
+| `--no-confirm`                 | `G5K_RM_NO_CONFIRM`          | False                 | No  | Yes |
 
 ### Examples
 
@@ -186,14 +196,19 @@ docker-g5k create-cluster \
 
 #### Cluster deletion
 
-An example of deleting all provisionned nodes:
-```bash
-docker-g5k remove-cluster
-```
-
 An example of deleting only nodes related to a job ID:
 ```bash
-docker-g5k remove-cluster --g5k-job-id 1234567
+docker-g5k remove-cluster 1234
+```
+
+An example of deleting only nodes related to a job ID without confirmation:
+```bash
+docker-g5k remove-cluster --no-confirm 1234
+```
+
+An example of multi-jobs deletion:
+```bash
+docker-g5k remove-cluster 1234 5678 9012
 ```
 
 #### Normal use
