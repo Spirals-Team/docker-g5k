@@ -1,10 +1,7 @@
 package swarm
 
 import (
-	"fmt"
-
 	"github.com/docker/machine/libmachine/swarm"
-	"github.com/docker/swarm/discovery/token"
 )
 
 // SwarmStandaloneGlobalConfig contain Swarm standalone global configuration
@@ -31,20 +28,4 @@ func (gc *SwarmStandaloneGlobalConfig) CreateNodeConfig(nodeName string, isMaste
 		ArbitraryJoinFlags: gc.JoinFlags,
 		IsExperimental:     false,
 	}
-}
-
-// GenerateDiscoveryToken generate a new Docker Swarm discovery token from Docker Hub
-func (gc *SwarmStandaloneGlobalConfig) GenerateDiscoveryToken() error {
-	// init Discovery structure
-	discovery := token.Discovery{}
-	discovery.Initialize("token", 0, 0, nil)
-
-	// get a new discovery token from Docker Hub
-	swarmToken, err := discovery.CreateCluster()
-	if err != nil {
-		return fmt.Errorf("Error when generating new discovery token: %s", err.Error())
-	}
-
-	gc.Discovery = fmt.Sprintf("token://%s", swarmToken)
-	return nil
 }
