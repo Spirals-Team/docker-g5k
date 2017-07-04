@@ -1,10 +1,13 @@
 package command
 
 import (
-	"sort"
+	"strconv"
 
 	"fmt"
 
+	"strings"
+
+	"github.com/Songmu/prompter"
 	"github.com/codegangsta/cli"
 	"github.com/docker/machine/commands/mcndirs"
 	"github.com/docker/machine/libmachine"
@@ -17,13 +20,13 @@ var (
 	RemoveClusterCliCommand = cli.Command{
 		Name:    "remove-cluster",
 		Aliases: []string{"rm-cluster", "rm", "r"},
-		Usage:   "Remove a Docker Swarm cluster from the Grid'5000 infrastructure",
+		Usage:   "Remove a Docker cluster from the Grid'5000 infrastructure",
 		Action:  RunRemoveClusterCommand,
 		Flags: []cli.Flag{
-			cli.IntSliceFlag{
-				EnvVar: "G5K_JOB_ID",
-				Name:   "g5k-job-id",
-				Usage:  "Only remove nodes related to the provided job ID",
+			cli.BoolFlag{
+				EnvVar: "G5K_RM_NO_CONFIRM",
+				Name:   "no-confirm",
+				Usage:  "Disable confirmation before removing machines",
 			},
 		},
 	}
@@ -36,7 +39,7 @@ type RemoveClusterCommand struct {
 
 func (c *RemoveClusterCommand) checkCliParameters() error {
 	// check job ID
-	if len(c.cli.IntSlice("g5k-job-id")) < 1 {
+	if c.cli.NArg() < 1 {
 		return fmt.Errorf("You must provide the job ID of the nodes you want to remove")
 	}
 
@@ -49,39 +52,63 @@ func (c *RemoveClusterCommand) RemoveCluster() error {
 	client := libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir())
 	defer client.Close()
 
+	// store jobs ID to kill
+	jobsToKill := make(map[int]bool)
+
+	for _, arg := range c.cli.Args() {
+		// convert argument to int
+		jobID, err := strconv.Atoi(arg)
+		if err != nil {
+			return fmt.Errorf("The given parameter '%s' is not a valid job ID", arg)
+		}
+
+		// append job ID to list of jobs to kill
+		jobsToKill[jobID] = true
+	}
+
+	// if confirmation is enabled (default behavior)
+	if !c.cli.Bool("no-confirm") {
+		// warn user before starting
+		log.Infof("About to remove all associated machine(s) for job(s) ID : %s", strings.Join(c.cli.Args(), ", "))
+		log.Warn("WARNING: This action terminate the resource reservation(s) and the node(s) will be unavailable !")
+
+		// ask for confirmation
+		if !prompter.YN("Are you sure?", false) {
+			return fmt.Errorf("The operation was canceled by the user")
+		}
+	}
+
 	// load hosts from libmachine storage
 	lst, _, err := persist.LoadAllHosts(client)
 	if err != nil {
 		return err
 	}
 
-	// sort job ID to kill
-	sort.Ints(c.cli.IntSlice("g5k-job-id"))
-
 	// store already deleted jobs to minimize API calls
-	deletedJobs := make(map[int]bool)
+	killedJobs := make(map[int]bool)
 
 	// remove hosts from libmachine storage
 	for _, h := range lst {
 		// only remove Grid5000 nodes
 		if h.DriverName == "g5k" {
+			// get machine's driver configuration
 			driverConfig, err := GetG5kDriverConfig(h.RawDriver)
 			if err != nil {
 				log.Errorf("Cannot remove node '%s' : %s", h.Name, err)
 			}
 
 			// skip nodes with Job ID not in the list of jobs to kill
-			if sort.SearchInts(c.cli.IntSlice("g5k-job-id"), driverConfig.G5kJobID) != len(c.cli.IntSlice("g5k-job-id")) {
+			if _, exist := jobsToKill[driverConfig.G5kJobID]; !exist {
 				continue
 			}
 
 			// check the job is already in the list of deleted jobs
-			if _, exist := deletedJobs[driverConfig.G5kJobID]; !exist {
+			if _, exist := killedJobs[driverConfig.G5kJobID]; !exist {
 				// send API call to kill job
 				driverConfig.G5kAPI.KillJob(driverConfig.G5kJobID)
 
 				// add job ID to list of deleted jobs
-				deletedJobs[driverConfig.G5kJobID] = true
+				killedJobs[driverConfig.G5kJobID] = true
 
 				log.Infof("Job '%v' killed", driverConfig.G5kJobID)
 			}
